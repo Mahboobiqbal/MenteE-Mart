@@ -8,7 +8,7 @@ import TrendingNow from "./TrendingNow";
 import DealsGrid from "./DealsGrid";
 import ProductsGrid from "./ProductsGrid";
 import SectionHeader from "./SectionHeader";
-
+import ServiceMap from "./ServiceMap"
 const PAGE_SIZE = 12;
 const emerald = "#008060";
 const white = "#FFFFFF";
@@ -175,6 +175,11 @@ const Home = () => {
 
         {/* All products grid */}
         <ProductsGrid current={current} loading={loading} totalCount={generalList.length} page={page} setPage={setPage} totalPages={totalPages} />
+
+        {/* Service Map */}
+        <section>
+          <ServiceMap />
+        </section>
       </div>
     </div>
   );
