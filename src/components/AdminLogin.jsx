@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { auth } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import supabase from "../utils/supabase";
+
+const emerald = "#008060";
+const yellow = "#FFD700";
+const white = "#FFFFFF";
+const charcoal = "#333333";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -11,91 +14,91 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (Supabase session)
   useEffect(() => {
-    if (currentUser) {
-      const from = location.state?.from?.pathname || "/admin/dashboard";
-      navigate(from, { replace: true });
-    }
-  }, [currentUser, navigate, location]);
+    let ignore = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!ignore && data?.session?.user) {
+        const from = location.state?.from?.pathname || "/admin/dashboard";
+        navigate(from, { replace: true });
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [navigate, location]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      // Just sign in - if they can sign in, they're admin
-      await signInWithEmailAndPassword(auth, email, password);
-      
-      // Navigate to dashboard
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        // Friendly messages
+        const msg = String(signInError.message || "").toLowerCase();
+        if (msg.includes("invalid login credentials")) {
+          setError("Invalid credentials. Please check your email and password.");
+        } else if (msg.includes("email not confirmed")) {
+          setError("Please verify your email before signing in.");
+        } else {
+          setError("Login failed. Please try again.");
+        }
+        return;
+      }
       const from = location.state?.from?.pathname || "/admin/dashboard";
       navigate(from, { replace: true });
-      
-    } catch (error) {
-      console.error("Login error:", error);
-      switch (error.code) {
-        case 'auth/user-not-found':
-          setError("No account found with this email address.");
-          break;
-        case 'auth/wrong-password':
-          setError("Incorrect password. Please try again.");
-          break;
-        case 'auth/invalid-email':
-          setError("Invalid email address format.");
-          break;
-        case 'auth/too-many-requests':
-          setError("Too many failed attempts. Please try again later.");
-          break;
-        case 'auth/invalid-credential':
-          setError("Invalid credentials. Please check your email and password.");
-          break;
-        default:
-          setError("Login failed. Please check your credentials and try again.");
-      }
+    } catch (err) {
+      setError("Unexpected error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8" style={{ backgroundColor: "#f5f7f6" }}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-[#660033] to-[#AD1457] rounded-xl flex items-center justify-center">
+          <div
+            className="w-16 h-16 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: emerald }}
+          >
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
             </svg>
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-bold" style={{ color: charcoal }}>
           Admin Login
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm" style={{ color: `${charcoal}b3` }}>
           Sign in to access the admin dashboard
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200">
+        <div className="py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="rounded-md p-4 border" style={{ backgroundColor: "#FEF2F2", borderColor: "#FECACA" }}>
                 <div className="flex">
-                  <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" style={{ color: "#F87171" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <div className="ml-3">
-                    <p className="text-sm text-red-800">{error}</p>
+                    <p className="text-sm" style={{ color: "#991B1B" }}>{error}</p>
                   </div>
                 </div>
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
                 Email Address
               </label>
               <input
@@ -105,13 +108,16 @@ const AdminLogin = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent transition-colors"
-                placeholder="syab@nainzaka.com"
+                className="w-full px-4 py-3 rounded-md transition-colors outline-none"
+                placeholder="you@example.com"
+                style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
                 Password
               </label>
               <input
@@ -121,8 +127,11 @@ const AdminLogin = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent transition-colors"
+                className="w-full px-4 py-3 rounded-md transition-colors outline-none"
                 placeholder="Enter your password"
+                style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
               />
             </div>
 
@@ -130,11 +139,12 @@ const AdminLogin = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#660033] hover:bg-[#4A0025] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#660033] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex justify-center py-3 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: emerald, color: white }}
               >
                 {loading ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 mr-2" style={{ borderColor: white, borderTopColor: "transparent" }}></div>
                     Signing in...
                   </div>
                 ) : (
@@ -147,7 +157,8 @@ const AdminLogin = () => {
           <div className="mt-6 text-center">
             <button
               onClick={() => navigate('/')}
-              className="text-sm text-[#660033] hover:text-[#4A0025] font-medium transition-colors"
+              className="text-sm font-medium"
+              style={{ color: emerald }}
             >
               ← Back to Homepage
             </button>

@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 
+AddProduct.jsx
+AdminDashboard.jsx
+EditProduct.jsx

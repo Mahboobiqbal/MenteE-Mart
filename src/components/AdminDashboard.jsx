@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import supabase from "../utils/supabase";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { FaArrowLeft, FaSearch, FaFilter, FaSort, FaEye, FaMousePointer, FaEdit, FaTrash } from "react-icons/fa";
+import { FaArrowLeft, FaSearch, FaEye, FaMousePointer, FaEdit, FaTrash, FaSignOutAlt } from "react-icons/fa";
 import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+const emerald = "#008060";
+const yellow = "#FFD700";
+const charcoal = "#333333";
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { currentUser, logout } = useAuth(); // Use AuthContext instead of localStorage
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,52 +20,52 @@ const AdminDashboard = () => {
   const [sortBy, setSortBy] = useState("views-high");
   const [productLimit, setProductLimit] = useState(10);
 
-  // Remove the problematic useEffect that was causing the infinite loop
   useEffect(() => {
     fetchProducts();
-  }, []); // Only run once on mount
+  }, []);
 
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const productsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setProducts(productsData);
-    } catch (error) {
-      console.error("Error fetching products:", error);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Error fetching products:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      try {
-        await deleteDoc(doc(db, "products", id));
-        setProducts(products.filter(product => product.id !== id));
-      } catch (error) {
-        console.error("Error deleting product:", error);
-      }
+    if (!id) return;
+    if (!window.confirm("Delete this product?")) return;
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) throw error;
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error("Error deleting product:", err);
+      alert("Failed to delete product.");
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout(); // Use AuthContext logout
-      navigate("/");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      navigate("/");
-    }
+  const handleExitAdmin = () => {
+    sessionStorage.removeItem("admin_ok");
+    navigate("/");
   };
 
   const filteredProducts = products
-    .filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    .filter((product) => {
+      const name = String(product.name || "").toLowerCase();
+      const desc = String(product.description || "").toLowerCase();
+      const term = searchTerm.toLowerCase();
+      return name.includes(term) || desc.includes(term);
+    })
     .sort((a, b) => {
       switch (sortBy) {
         case "views-high":
@@ -76,11 +77,11 @@ const AdminDashboard = () => {
         case "clicks-low":
           return (a.clicks || 0) - (b.clicks || 0);
         case "name":
-          return a.name.localeCompare(b.name);
+          return String(a.name || "").localeCompare(String(b.name || ""));
         case "price-high":
-          return (b.price || 0) - (a.price || 0);
+          return (Number(b.price) || 0) - (Number(a.price) || 0);
         case "price-low":
-          return (a.price || 0) - (b.price || 0);
+          return (Number(a.price) || 0) - (Number(b.price) || 0);
         default:
           return 0;
       }
@@ -89,20 +90,22 @@ const AdminDashboard = () => {
   const topProducts = filteredProducts.slice(0, productLimit);
 
   const chartData = {
-    labels: topProducts.map(product => product.name.length > 15 ? product.name.substring(0, 15) + '...' : product.name),
+    labels: topProducts.map((p) =>
+      String(p.name || "").length > 15 ? `${String(p.name).slice(0, 15)}…` : String(p.name || "")
+    ),
     datasets: [
       {
         label: "Views",
-        data: topProducts.map(product => product.views || 0),
-        backgroundColor: "rgba(102, 0, 51, 0.6)",
-        borderColor: "rgba(102, 0, 51, 1)",
+        data: topProducts.map((p) => p.views || 0),
+        backgroundColor: `${emerald}99`,
+        borderColor: emerald,
         borderWidth: 1,
       },
       {
         label: "Clicks",
-        data: topProducts.map(product => product.clicks || 0),
-        backgroundColor: "rgba(168, 85, 247, 0.6)",
-        borderColor: "rgba(168, 85, 247, 1)",
+        data: topProducts.map((p) => p.clicks || 0),
+        backgroundColor: `${yellow}99`,
+        borderColor: yellow,
         borderWidth: 1,
       },
     ],
@@ -117,145 +120,139 @@ const AdminDashboard = () => {
         labels: {
           usePointStyle: true,
           padding: 20,
-          font: {
-            size: 12,
-            weight: 'bold'
-          }
-        }
+          font: { size: 12 },
+          color: charcoal,
+        },
       },
       title: {
         display: true,
         text: `Top ${productLimit} Products Analytics`,
-        font: {
-          size: 16,
-          weight: 'bold'
-        }
-      }
+        color: charcoal,
+        font: { size: 16, weight: "bold" },
+      },
+      tooltip: { enabled: true },
     },
     scales: {
       y: {
         beginAtZero: true,
-        grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
-        },
-        ticks: {
-          font: {
-            size: 11
-          }
-        }
+        grid: { color: "rgba(0,0,0,0.08)" },
+        ticks: { color: charcoal, font: { size: 11 } },
       },
       x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          font: {
-            size: 11
-          },
-          maxRotation: 45
-        }
-      }
-    }
+        grid: { display: false },
+        ticks: { color: charcoal, font: { size: 11 }, maxRotation: 45 },
+      },
+    },
   };
 
   if (loading) {
     return (
-  <div className="min-h-screen bg-neutral flex justify-center items-center">
+      <div className="min-h-screen flex justify-center items-center" style={{ background: "#f5f7f6" }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-secondary border-t-primary mx-auto mb-4"></div>
-          <p className="text-lg text-primary font-medium">Loading dashboard...</p>
+          <div
+            className="animate-spin rounded-full h-16 w-16 border-4 mx-auto mb-4"
+            style={{ borderColor: `${emerald}55`, borderTopColor: emerald }}
+          />
+          <p className="text-lg font-medium" style={{ color: charcoal }}>Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-  <div className="min-h-screen bg-neutral">
+    <div className="min-h-screen" style={{ background: "#f5f7f6" }}>
       {/* Header */}
-  <header className="bg-neutral/80 backdrop-blur-md border-b border-secondary sticky top-0 z-50">
+      <header className="backdrop-blur-md border-b sticky top-0 z-50" style={{ background: "#ffffffcc", borderColor: "#e5e7eb" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-6">
               <button
                 onClick={() => navigate("/")}
-                className="group flex items-center text-secondary hover:text-primary transition-all"
+                className="group flex items-center"
+                style={{ color: charcoal }}
               >
                 <FaArrowLeft className="w-4 h-4 mr-2 transform group-hover:-translate-x-1 transition-transform" />
                 <span className="font-medium">Store</span>
               </button>
               <div>
-                <h1 className="text-2xl font-light">
-                  Admin <span className="font-medium text-primary">Dashboard</span>
+                <h1 className="text-2xl font-light" style={{ color: charcoal }}>
+                  Admin <span className="font-semibold" style={{ color: emerald }}>Dashboard</span>
                 </h1>
-                <p className="text-sm text-secondary">Manage your products and analytics</p>
+                <p className="text-sm" style={{ color: `${charcoal}99` }}>Manage products and analytics</p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-6">
-              <div className="text-sm text-secondary">
-                <span className="block text-xs text-secondary">Signed in as</span>
-                <span className="font-medium">{currentUser?.email || 'Admin'}</span>
-              </div>
+
+            <div className="flex items-center space-x-3">
               <Link
-                to="/admin/add-product"
-                className="bg-gradient-to-r from-primary to-accent text-white px-6 py-2.5 rounded-xl font-medium 
-                         hover:shadow-lg hover:shadow-accent/50 transform hover:-translate-y-0.5 transition-all duration-300"
+                to="/add-product"
+                className="px-5 py-2.5 rounded-xl font-medium transition"
+                style={{ background: emerald, color: "#fff" }}
               >
                 Add Product
               </Link>
               <button
-                onClick={handleLogout}
-                className="text-secondary hover:text-primary text-sm font-medium transition-colors px-4 py-2 rounded-lg
-                         hover:bg-pink-50"
+                onClick={handleExitAdmin}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                style={{ color: charcoal, background: "#ffffff", border: "1px solid #e5e7eb" }}
+                title="Exit admin mode"
               >
-                Logout
+                <FaSignOutAlt className="w-4 h-4" />
+                Exit
               </button>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Body */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[
             {
               title: "Total Products",
-              value: products.length,
-              icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />,
-              color: "bg-[#660033]/10 text-[#660033]"
+              value: products.length.toLocaleString(),
+              color: emerald,
+              icon: (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              ),
             },
             {
               title: "Total Views",
-              value: products.reduce((sum, product) => sum + (product.views || 0), 0).toLocaleString(),
+              value: products.reduce((s, p) => s + (p.views || 0), 0).toLocaleString(),
+              color: emerald,
               icon: <FaEye className="w-6 h-6" />,
-              color: "bg-green-100 text-green-600"
             },
             {
               title: "Total Clicks",
-              value: products.reduce((sum, product) => sum + (product.clicks || 0), 0).toLocaleString(),
+              value: products.reduce((s, p) => s + (p.clicks || 0), 0).toLocaleString(),
+              color: yellow,
               icon: <FaMousePointer className="w-6 h-6" />,
-              color: "bg-blue-100 text-blue-600"
             },
             {
               title: "Avg. Views",
-              value: products.length ? Math.round(products.reduce((sum, product) => sum + (product.views || 0), 0) / products.length) : 0,
-              icon: <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 00-2-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h2a2 2 0 00-2-2z"></path>
-                    </svg>,
-              color: "bg-purple-100 text-purple-600"
+              value:
+                products.length
+                  ? Math.round(products.reduce((s, p) => s + (p.views || 0), 0) / products.length).toLocaleString()
+                  : "0",
+              color: charcoal,
+              icon: (
+                <svg className="w-6 h-6" fill="none" stroke={charcoal} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 00-2-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h2a2 2 0 00-2-2z"></path>
+                </svg>
+              ),
             },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-300">
+            <div key={idx} className="bg-white rounded-2xl border p-6 hover:shadow transition" style={{ borderColor: "#e5e7eb" }}>
               <div className="flex items-center">
-                <div className={`p-3 rounded-xl ${stat.color}`}>
+                <div className="p-3 rounded-xl" style={{ background: `${stat.color}1A`, color: stat.color }}>
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {stat.icon}
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-3xl font-light mt-1">{stat.value}</p>
+                  <p className="text-sm font-medium" style={{ color: `${charcoal}99` }}>{stat.title}</p>
+                  <p className="text-3xl font-light" style={{ color: charcoal }}>{stat.value}</p>
                 </div>
               </div>
             </div>
@@ -263,16 +260,17 @@ const AdminDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg border border-gray-200 mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-white rounded-lg border mb-6" style={{ borderColor: "#e5e7eb" }}>
+          <div className="border-b" style={{ borderColor: "#e5e7eb" }}>
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab("table")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === "table"
-                    ? "border-[#660033] text-[#660033]"
+                    ? "border-[#008060]"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
+                style={{ color: activeTab === "table" ? emerald : charcoal }}
               >
                 Products Table
               </button>
@@ -280,45 +278,44 @@ const AdminDashboard = () => {
                 onClick={() => setActiveTab("charts")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === "charts"
-                    ? "border-[#660033] text-[#660033]"
+                    ? "border-[#008060]"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
+                style={{ color: activeTab === "charts" ? emerald : charcoal }}
               >
                 Analytics Chart
               </button>
             </nav>
           </div>
 
-          {/* Content */}
           <div className="p-6">
             {activeTab === "table" ? (
               <div>
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <div className="relative flex-1 group">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 
-                                        group-hover:text-[#660033] transition-colors" />
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
                       placeholder="Search products..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-gray-700
-                                 focus:ring-2 focus:ring-[#660033]/20 focus:border-[#660033] transition-all
-                                 group-hover:border-[#660033]/50"
+                      className="w-full pl-10 pr-4 py-3 border rounded-xl text-gray-700 focus:ring-2"
+                      style={{ borderColor: "#e5e7eb", outline: "none" }}
                     />
                   </div>
                   <div className="flex gap-3">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                      className="px-3 py-2 border rounded-lg focus:ring-2"
+                      style={{ borderColor: "#e5e7eb", outline: "none" }}
                     >
                       <option value="views-high">Views (High to Low)</option>
                       <option value="views-low">Views (Low to High)</option>
                       <option value="clicks-high">Clicks (High to Low)</option>
                       <option value="clicks-low">Clicks (Low to High)</option>
-                      <option value="name">Name (A-Z)</option>
+                      <option value="name">Name (A–Z)</option>
                       <option value="price-high">Price (High to Low)</option>
                       <option value="price-low">Price (Low to High)</option>
                     </select>
@@ -326,7 +323,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Products Table */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border shadow-sm overflow-hidden" style={{ borderColor: "#e5e7eb" }}>
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -338,81 +335,82 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {filteredProducts.map((product) => (
-                        <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-16 w-16">
-                                <img
-                                  className="h-16 w-16 rounded-lg object-cover border border-gray-200"
-                                  src={product.imageUrl}
-                                  alt={product.name}
-                                  onError={(e) => {
-                                    e.target.src = "https://via.placeholder.com/64x64/F3F4F6/9CA3AF?text=No+Image";
-                                  }}
-                                />
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900 max-w-xs">
-                                  {product.name}
+                      {filteredProducts.map((product) => {
+                        const img = product.image_url || (Array.isArray(product.additional_images) && product.additional_images[0]) || "";
+                        return (
+                          <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-16 w-16">
+                                  <img
+                                    className="h-16 w-16 rounded-lg object-cover border"
+                                    style={{ borderColor: "#e5e7eb" }}
+                                    src={img || "https://via.placeholder.com/64x64/F3F4F6/9CA3AF?text=No+Image"}
+                                    alt={product.name}
+                                  />
                                 </div>
-                                <div className="text-sm text-gray-500 max-w-xs truncate">
-                                  {product.description}
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900 max-w-xs">
+                                    {product.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500 max-w-xs truncate">
+                                    {product.description}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              ₨{product.price?.toLocaleString()}
-                            </div>
-                            {product.salePrice && (
-                              <div className="text-xs text-red-600">
-                                Sale: ₨{product.salePrice?.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                ₨{Number(product.price || 0).toLocaleString()}
                               </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center text-sm text-gray-600">
-                                <FaEye className="w-3 h-3 mr-1" />
-                                {product.views || 0}
+                              {product.sale_price ? (
+                                <div className="text-xs text-red-600">
+                                  Sale: ₨{Number(product.sale_price).toLocaleString()}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <FaEye className="w-3 h-3 mr-1" />
+                                  {product.views || 0}
+                                </div>
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <FaMousePointer className="w-3 h-3 mr-1" />
+                                  {product.clicks || 0}
+                                </div>
                               </div>
-                              <div className="flex items-center text-sm text-gray-600">
-                                <FaMousePointer className="w-3 h-3 mr-1" />
-                                {product.clicks || 0}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              product.inStock 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {product.inStock ? 'In Stock' : 'Out of Stock'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
-                              <Link
-                                to={`/admin/edit-product/${product.id}`}
-                                className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                                title="Edit Product"
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  product.in_stock ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                }`}
                               >
-                                <FaEdit className="w-4 h-4" />
-                              </Link>
-                              <button
-                                onClick={() => handleDelete(product.id)}
-                                className="text-red-600 hover:text-red-900 p-1 rounded"
-                                title="Delete Product"
-                              >
-                                <FaTrash className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {product.in_stock ? "In Stock" : "Out of Stock"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex justify-end space-x-2">
+                                <Link
+                                  to={`/admin/edit-product/${product.id}`}
+                                  className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                                  title="Edit Product"
+                                >
+                                  <FaEdit className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  onClick={() => handleDelete(product.id)}
+                                  className="text-red-600 hover:text-red-900 p-1 rounded"
+                                  title="Delete Product"
+                                >
+                                  <FaTrash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -431,13 +429,14 @@ const AdminDashboard = () => {
               <div>
                 {/* Chart Controls */}
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium text-gray-900">Product Performance Analytics</h3>
+                  <h3 className="text-lg font-medium" style={{ color: charcoal }}>Product Performance Analytics</h3>
                   <div className="flex items-center space-x-4">
-                    <label className="text-sm font-medium text-gray-700">Show Top:</label>
+                    <label className="text-sm font-medium" style={{ color: charcoal }}>Show Top:</label>
                     <select
                       value={productLimit}
                       onChange={(e) => setProductLimit(Number(e.target.value))}
-                      className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                      className="px-3 py-1 border rounded-md text-sm focus:ring-2"
+                      style={{ borderColor: "#e5e7eb", outline: "none" }}
                     >
                       <option value={5}>5 Products</option>
                       <option value={10}>10 Products</option>
@@ -448,67 +447,38 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Chart */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <div className="bg-white rounded-2xl border p-8 shadow-sm" style={{ borderColor: "#e5e7eb" }}>
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-light">
-                      Product <span className="font-medium text-[#660033]">Analytics</span>
+                    <h3 className="text-2xl font-light" style={{ color: charcoal }}>
+                      Product <span className="font-medium" style={{ color: emerald }}>Analytics</span>
                     </h3>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm font-medium text-gray-600">Show Top</span>
-                      <select
-                        value={productLimit}
-                        onChange={(e) => setProductLimit(Number(e.target.value))}
-                        className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 
-                                 focus:ring-[#660033]/20 focus:border-[#660033] transition-all"
-                      >
-                        {[5, 10, 15, 20].map(num => (
-                          <option key={num} value={num}>{num} Products</option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
-                  
-                  <div style={{ height: '500px' }}>
-                    <Bar data={chartData} options={{
-                      ...chartOptions,
-                      plugins: {
-                        ...chartOptions.plugins,
-                        legend: {
-                          ...chartOptions.plugins.legend,
-                          labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            font: {
-                              size: 12,
-                              family: "'Inter', sans-serif"
-                            }
-                          }
-                        }
-                      }
-                    }} />
+
+                  <div style={{ height: 500 }}>
+                    <Bar data={chartData} options={chartOptions} />
                   </div>
                 </div>
 
-                {/* Chart Legend */}
+                {/* Totals */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-[#660033]/10 border border-[#660033]/20 rounded-lg p-4">
+                  <div className="rounded-lg p-4" style={{ background: `${emerald}1A`, border: `1px solid ${emerald}33` }}>
                     <div className="flex items-center">
-                      <div className="w-4 h-4 bg-[#660033] rounded mr-3"></div>
+                      <div className="w-4 h-4 rounded mr-3" style={{ background: emerald }}></div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900">Total Views</h4>
-                        <p className="text-2xl font-bold text-[#660033]">
-                          {topProducts.reduce((sum, product) => sum + (product.views || 0), 0).toLocaleString()}
+                        <h4 className="text-sm font-medium" style={{ color: charcoal }}>Total Views</h4>
+                        <p className="text-2xl font-bold" style={{ color: emerald }}>
+                          {topProducts.reduce((sum, p) => sum + (p.views || 0), 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="rounded-lg p-4" style={{ background: `${yellow}1A`, border: `1px solid ${yellow}66` }}>
                     <div className="flex items-center">
-                      <div className="w-4 h-4 bg-purple-500 rounded mr-3"></div>
+                      <div className="w-4 h-4 rounded mr-3" style={{ background: yellow }}></div>
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900">Total Clicks</h4>
-                        <p className="text-2xl font-bold text-purple-600">
-                          {topProducts.reduce((sum, product) => sum + (product.clicks || 0), 0).toLocaleString()}
+                        <h4 className="text-sm font-medium" style={{ color: charcoal }}>Total Clicks</h4>
+                        <p className="text-2xl font-bold" style={{ color: charcoal }}>
+                          {topProducts.reduce((sum, p) => sum + (p.clicks || 0), 0).toLocaleString()}
                         </p>
                       </div>
                     </div>

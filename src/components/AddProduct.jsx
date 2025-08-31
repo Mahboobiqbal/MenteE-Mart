@@ -1,8 +1,24 @@
 import React, { useState } from "react";
-import { db } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import supabase from "../utils/supabase";
 import { fetchDescription } from "../utils/groq";
+
+const emerald = "#008060";
+const yellow = "#FFD700";
+const white = "#FFFFFF";
+const charcoal = "#333333";
+
+// Storage bucket name in Supabase (create it first and make it public or add upload policy)
+const BUCKET = "product-images";
+
+const slugify = (str = "") =>
+  str
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -38,23 +54,20 @@ const AddProduct = () => {
   };
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
 
     if (files.length > 3) {
       alert("You can only upload up to 3 images");
       return;
     }
 
-    // Validate file types
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     const invalidFiles = files.filter((file) => !validTypes.includes(file.type));
-
     if (invalidFiles.length > 0) {
       alert("Please select only image files (JPEG, PNG, WebP)");
       return;
     }
 
-    // Check file sizes (max 5MB per image for ImgBB)
     const largeFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
     if (largeFiles.length > 0) {
       alert("Each image must be less than 5MB");
@@ -63,15 +76,14 @@ const AddProduct = () => {
 
     setSelectedImages(files);
 
-    // Create previews
-    const previews = files.map((file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
-    });
-
+    const previews = files.map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.readAsDataURL(file);
+        })
+    );
     Promise.all(previews).then(setImagePreviews);
   };
 
@@ -82,41 +94,6 @@ const AddProduct = () => {
     setImagePreviews(newPreviews);
   };
 
-  const uploadToImgBB = async (imageFile) => {
-    // Use import.meta.env for Vite environment variables
-    const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-
-    console.log("API Key:", apiKey); // Debug log
-
-    if (!apiKey) {
-      throw new Error("ImgBB API key is not configured. Check your .env file.");
-    }
-
-    const uploadFormData = new FormData();
-    uploadFormData.append("image", imageFile);
-
-    try {
-      // Use query parameter method for ImgBB API
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-        method: "POST",
-        body: uploadFormData,
-      });
-
-      const result = await response.json();
-
-      console.log("ImgBB Response:", result); // Debug log
-
-      if (!result.success) {
-        throw new Error(result.error?.message || "Failed to upload image to ImgBB");
-      }
-
-      return result.data.url;
-    } catch (error) {
-      console.error("ImgBB upload error:", error);
-      throw new Error(`Image upload failed: ${error.message}`);
-    }
-  };
-
   const uploadImages = async () => {
     if (selectedImages.length === 0) {
       throw new Error("Please select at least one image");
@@ -124,16 +101,26 @@ const AddProduct = () => {
 
     setImageUploading(true);
     try {
-      const imageUrls = [];
-
-      // Upload images one by one for better error handling
+      const urls = [];
+      const base = slugify(formData.name || "product");
       for (let i = 0; i < selectedImages.length; i++) {
-        console.log(`Uploading image ${i + 1}/${selectedImages.length}`);
-        const url = await uploadToImgBB(selectedImages[i]);
-        imageUrls.push(url);
-      }
+        const file = selectedImages[i];
+        const ext = (file.name.split(".").pop() || file.type.split("/")[1] || "jpg").toLowerCase();
+        const path = `products/${base}/${Date.now()}-${i}.${ext}`;
 
-      return imageUrls;
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: file.type,
+          });
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        urls.push(publicData.publicUrl);
+      }
+      return urls;
     } finally {
       setImageUploading(false);
     }
@@ -146,7 +133,6 @@ const AddProduct = () => {
       alert("Please fill in all required fields");
       return;
     }
-
     if (selectedImages.length === 0) {
       alert("Please select at least one product image");
       return;
@@ -154,26 +140,44 @@ const AddProduct = () => {
 
     setLoading(true);
     try {
-      // Upload images first
+      // 1) Upload images to Supabase Storage
       const imageUrls = await uploadImages();
 
-      // Add product to database
-      await addDoc(collection(db, "products"), {
-        ...formData,
-        price: parseFloat(formData.price),
-        salePrice: formData.salePrice ? parseFloat(formData.salePrice) : null,
-        imageUrl: imageUrls[0], // Main image
-        additionalImages: imageUrls.slice(1), // Additional images
-        createdAt: new Date(),
+      // 2) Prepare product payload
+      const regularPrice = parseFloat(formData.price);
+      const salePriceNum = formData.salePrice ? parseFloat(formData.salePrice) : null;
+
+      const payload = {
+        name: formData.name.trim(),
+        slug: slugify(formData.name),
+        description: formData.description.trim(),
+        category: formData.category,
+        regular_price: regularPrice,
+        sale_price: salePriceNum,
+        price: salePriceNum ?? regularPrice,
+        in_stock: formData.inStock,
+        featured: formData.featured,
+        image_url: imageUrls[0],
+        additional_images: imageUrls.slice(1),
+        rating: 0,
+        reviews: 0,
         views: 0,
         clicks: 0,
-      });
+        whatsapp_clicks: 0,
+        views_by_date: {},
+        clicks_by_date: {},
+        created_at: new Date().toISOString(),
+      };
+
+      // 3) Insert into Supabase table
+      const { error: insertError } = await supabase.from("products").insert([payload]);
+      if (insertError) throw insertError;
 
       alert("Product added successfully!");
       navigate("/admin/dashboard");
     } catch (error) {
-      console.error("Error adding product:", error);
-      alert("Error adding product: " + error.message);
+      console.error("Supabase error:", error);
+      alert("Error adding product: " + (error?.message || "Unknown error"));
     } finally {
       setLoading(false);
     }
@@ -189,7 +193,6 @@ const AddProduct = () => {
       Stock Status: ${formData.inStock ? "In Stock" : "Out of Stock"}
       Featured: ${formData.featured ? "Yes" : "No"}
     `;
-
     try {
       const description = await fetchDescription(prompt);
       setFormData((prev) => ({ ...prev, description }));
@@ -199,18 +202,19 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: "#f5f7f6" }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <div className="rounded-lg border p-6 mb-8" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Add New Product</h1>
-              <p className="text-gray-600 mt-1">Create a new product listing</p>
+              <h1 className="text-2xl font-semibold" style={{ color: charcoal }}>Add New Product</h1>
+              <p className="mt-1" style={{ color: `${charcoal}b3` }}>Create a new product listing</p>
             </div>
             <button
               onClick={() => navigate("/admin/dashboard")}
-              className="text-gray-600 hover:text-gray-900 flex items-center"
+              className="flex items-center"
+              style={{ color: charcoal }}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -222,33 +226,39 @@ const AddProduct = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Product Information</h2>
+          <div className="rounded-lg border p-6" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
+            <h2 className="text-lg font-medium mb-6" style={{ color: charcoal }}>Product Information</h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Product Name */}
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>Product Name *</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-md outline-none transition"
                   placeholder="Enter product name"
                   required
+                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>Category *</label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent bg-white"
+                  className="w-full px-4 py-3 rounded-md outline-none transition bg-white"
                   required
+                  style={{ border: "1px solid #d1d5db", color: charcoal }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 >
                   <option value="">Select a category</option>
                   {categories.map((category) => (
@@ -259,9 +269,9 @@ const AddProduct = () => {
                 </select>
               </div>
 
-              {/* Stock Status */}
+              {/* Stock + Featured */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Stock Status</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>Stock Status</label>
                 <div className="flex items-center space-x-6">
                   <label className="flex items-center">
                     <input
@@ -269,9 +279,10 @@ const AddProduct = () => {
                       name="inStock"
                       checked={formData.inStock}
                       onChange={handleInputChange}
-                      className="h-4 w-4 text-[#660033] focus:ring-[#660033] border-gray-300 rounded"
+                      className="h-4 w-4 rounded border"
+                      style={{ accentColor: emerald, borderColor: "#d1d5db" }}
                     />
-                    <span className="ml-2 text-sm text-gray-700">In Stock</span>
+                    <span className="ml-2 text-sm" style={{ color: charcoal }}>In Stock</span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -279,54 +290,64 @@ const AddProduct = () => {
                       name="featured"
                       checked={formData.featured}
                       onChange={handleInputChange}
-                      className="h-4 w-4 text-[#660033] focus:ring-[#660033] border-gray-300 rounded"
+                      className="h-4 w-4 rounded border"
+                      style={{ accentColor: emerald, borderColor: "#d1d5db" }}
                     />
-                    <span className="ml-2 text-sm text-gray-700">Featured Product</span>
+                    <span className="ml-2 text-sm" style={{ color: charcoal }}>Featured Product</span>
                   </label>
                 </div>
               </div>
 
-              {/* Price */}
+              {/* Regular Price */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Regular Price (₨) *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
+                  Regular Price (₨) *
+                </label>
                 <input
                   type="number"
                   name="price"
                   value={formData.price}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-md outline-none transition"
                   placeholder="0"
                   min="0"
                   step="0.01"
                   required
+                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
 
               {/* Sale Price */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sale Price (₨)
-                  <span className="text-gray-500 text-xs ml-1">(Optional)</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
+                  Sale Price (₨) <span className="text-xs" style={{ color: `${charcoal}99` }}>(Optional)</span>
                 </label>
                 <input
                   type="number"
                   name="salePrice"
                   value={formData.salePrice}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-md outline-none transition"
                   placeholder="0"
                   min="0"
                   step="0.01"
+                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
 
               {/* Description */}
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
                   Description
                   <span
                     onClick={generateDescription}
-                    className="ml-2 text-[#660033] hover:text-[#4A0025] cursor-pointer transition-colors"
+                    className="ml-2 cursor-pointer"
+                    style={{ color: emerald }}
+                    title="Auto-generate with AI"
                   >
                     [Generate]
                   </span>
@@ -336,68 +357,68 @@ const AddProduct = () => {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows="4"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-md outline-none transition"
                   placeholder="Enter product description..."
+                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
             </div>
           </div>
 
           {/* Image Upload Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Product Images</h2>
+          <div className="rounded-lg border p-6" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
+            <h2 className="text-lg font-medium mb-6" style={{ color: charcoal }}>Product Images</h2>
 
-            {/* File Upload */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
                 Upload Images * (Up to 3 images)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#660033] transition-colors">
-                <input
-                  type="file"
-                  id="images"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="images"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center transition-colors"
+                style={{ borderColor: "#d1d5db" }}
+              >
+                <input type="file" id="images" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
+                <label htmlFor="images" className="cursor-pointer flex flex-col items-center">
+                  <svg className="w-12 h-12 mb-4" style={{ color: "#9ca3af" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                   </svg>
-                  <span className="text-gray-600 font-medium">Click to upload images</span>
-                  <span className="text-gray-400 text-sm mt-1">PNG, JPG, WebP up to 5MB each</span>
+                  <span className="font-medium" style={{ color: charcoal }}>Click to upload images</span>
+                  <span className="text-sm mt-1" style={{ color: `${charcoal}99` }}>PNG, JPG, WebP up to 5MB each</span>
                 </label>
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm mt-2" style={{ color: `${charcoal}99` }}>
                 First image will be the main product image. Maximum 3 images allowed.
               </p>
             </div>
 
-            {/* Image Previews */}
             {imagePreviews.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Image Previews:</h3>
+                <h3 className="text-sm font-medium mb-3" style={{ color: charcoal }}>Image Previews:</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative">
                       <img
                         src={preview}
                         alt={`Product ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-md border border-gray-300"
+                        className="w-full h-32 object-cover rounded-md"
+                        style={{ border: "1px solid #d1d5db" }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                        className="absolute -top-2 -right-2 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                        style={{ backgroundColor: "#EF4444" }}
+                        title="Remove"
                       >
                         ×
                       </button>
                       {index === 0 && (
-                        <span className="absolute top-2 left-2 bg-[#660033] text-white px-2 py-1 text-xs rounded">
+                        <span
+                          className="absolute top-2 left-2 text-white px-2 py-1 text-xs rounded"
+                          style={{ backgroundColor: emerald }}
+                        >
                           Main
                         </span>
                       )}
@@ -409,19 +430,21 @@ const AddProduct = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="rounded-lg border p-6" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={() => navigate("/admin/dashboard")}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors"
+                className="px-6 py-3 rounded-md font-medium transition-colors"
+                style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || imageUploading}
-                className="px-6 py-3 bg-[#660033] hover:bg-[#4A0025] text-white rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: emerald, color: white }}
               >
                 {loading ? (imageUploading ? "Uploading Images..." : "Adding Product...") : "Add Product"}
               </button>

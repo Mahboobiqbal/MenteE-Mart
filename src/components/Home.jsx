@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import ProductTile from "./ProductTile";
-import productsDummy from "../data/dummydata.json";
+import supabase from "../utils/supabase";
 
 const PAGE_SIZE = 12;
 const emerald = "#008060";
@@ -14,6 +14,7 @@ const charcoal = "#333333";
 const Home = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -25,15 +26,47 @@ const Home = () => {
 
   useEffect(() => setPage(pageParam), [pageParam]);
 
-  // Load from dummy data only
+  // Load from Supabase
   useEffect(() => {
-    setLoading(true);
-    try {
-      const list = Array.isArray(productsDummy) ? productsDummy : productsDummy?.products || [];
-      setProducts(list);
-    } finally {
-      setLoading(false);
+    async function fetchProducts() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) throw new Error(error.message);
+        
+        // Transform Supabase data to match expected format
+        const transformedProducts = data.map(product => ({
+          id: product.id,
+          slug: product.slug || product.id,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          compareAtPrice: product.sale_price ? product.regular_price : null,
+          image: product.image_url,
+          rating: product.rating || 4.0,
+          reviews: product.reviews || 0,
+          category: product.category,
+          inStock: product.in_stock,
+          isTrending: product.featured,
+          views: product.views || 0,
+          clicks: product.clicks || 0
+        }));
+
+        setProducts(transformedProducts);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    fetchProducts();
   }, []);
 
   // Filter by query (for All Products only)
@@ -49,7 +82,7 @@ const Home = () => {
 
   // Build sections
   const saleProducts = useMemo(
-    () => products.filter((p) => Number(p.compareAtPrice) > Number(p.price)).slice(0, 8),
+    () => products.filter((p) => p.compareAtPrice && Number(p.compareAtPrice) > Number(p.price)).slice(0, 8),
     [products]
   );
 
@@ -57,7 +90,7 @@ const Home = () => {
     () =>
       products
         .filter(
-          (p) => p.isTrending || Number(p.reviews) >= 200 || Number(p.rating) >= 4.6
+          (p) => p.isTrending || Number(p.reviews) >= 5 || Number(p.rating) >= 4.5 || Number(p.views) > 50
         )
         .slice(0, 10),
     [products]
@@ -90,6 +123,29 @@ const Home = () => {
     sp.set("page", "1");
     navigate({ pathname: "/", search: `?${sp.toString()}` });
   };
+
+  // Show error state if fetch failed
+  if (error && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#f5f7f6" }}>
+        <div className="bg-white p-8 rounded-xl border max-w-md mx-auto text-center" style={{ borderColor: "#e5e7eb" }}>
+          <svg className="w-12 h-12 mx-auto mb-4" style={{ color: "#ef4444" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: charcoal }}>Error Loading Products</h2>
+          <p className="mb-4 text-gray-600">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 rounded-lg font-medium"
+            style={{ backgroundColor: emerald, color: white }}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full" style={{ backgroundColor: white }}>
@@ -142,7 +198,9 @@ const Home = () => {
               ? Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="min-w-[260px] max-w-[260px] h-48 bg-gray-100 rounded-xl animate-pulse" />
                 ))
-              : trendingProducts.map((p) => <ProductTile key={p.id} product={p} />)}
+              : trendingProducts.length > 0 
+                ? trendingProducts.map((p) => <ProductTile key={p.id} product={p} />)
+                : <div className="w-full py-8 text-center text-gray-500">No trending products found.</div>}
           </div>
         </section>
 
@@ -160,10 +218,12 @@ const Home = () => {
 
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {loading
-              ? Array.from({ length: 8 }).map((_, i) => (
+              ? Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-64 rounded-xl bg-gray-100 animate-pulse" />
                 ))
-              : saleProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+              : saleProducts.length > 0
+                ? saleProducts.map((p) => <ProductCard key={p.id} product={p} />)
+                : <div className="col-span-full py-12 text-center text-gray-500">No sale products currently available.</div>}
           </div>
         </section>
 
@@ -181,7 +241,11 @@ const Home = () => {
               ? Array.from({ length: PAGE_SIZE }).map((_, i) => (
                   <div key={i} className="h-64 rounded-xl bg-gray-100 animate-pulse" />
                 ))
-              : current.map((p) => <ProductCard key={p.id} product={p} />)}
+              : current.length > 0
+                ? current.map((p) => <ProductCard key={p.id} product={p} />)
+                : <div className="col-span-full py-12 text-center text-gray-500">
+                    {q ? "No products found matching your search." : "No products available."}
+                  </div>}
           </div>
 
           {generalList.length > PAGE_SIZE && (
