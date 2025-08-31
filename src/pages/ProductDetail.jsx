@@ -119,6 +119,9 @@ const ProductDetail = () => {
       : [...list, product.id];
     localStorage.setItem("wishlist", JSON.stringify(newWishlist));
     setIsWishlisted(!isWishlisted);
+
+    // notify other components (Navbar, Wishlist page) to refresh counts/data
+    window.dispatchEvent(new Event("wishlist-updated"));
   };
 
   const handleOrder = async () => {
@@ -126,8 +129,9 @@ const ProductDetail = () => {
     await supabase.rpc("increment_product_clicks", { p_id: product.id, p_whatsapp: true });
     const price = product.sale_price ?? product.price;
     const message = `Hello! I'm interested in *${product.name}* (₨${Number(price * quantity).toLocaleString()}) - Quantity: ${quantity}`;
-    const url = `https://wa.me/923404430083?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "";
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleShare = () => {

@@ -7,11 +7,13 @@ import Home from "./components/Home";
 import About from "./pages/About";
 import ProductCard from "./components/ProductCard"; // if you have ProductDetails, import that instead
 import AddProduct from "./components/AddProduct";
+import EditProduct from "./components/EditProduct";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminGate from "./components/AdminGate";
 import AdminDashboard from "./components/AdminDashboard"
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
+import Wishlist from "./pages/Wishlist";
 import "./App.css";
 
 // Component to always render Navbar and Footer (no admin routes)
@@ -56,12 +58,23 @@ const App = () => {
             </Layout>
           }
         />
+        <Route
+          path="/admin/edit-product/:id"
+          element={
+            <Layout>
+              <ProtectedRoute>
+                <EditProduct />
+              </ProtectedRoute>
+            </Layout>
+          }
+        />
 
         {/* Public catalog routes */}
         <Route path="/products" element={<Layout><Products /></Layout>} />
         <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
         {/* Also allow slug-based route */}
         <Route path="/p/:slug" element={<Layout><ProductDetail /></Layout>} />
+        <Route path="/wishlist" element={<Layout><Wishlist /></Layout>} />
 
         <Route path="*" element={<Layout><div className="max-w-7xl mx-auto p-6">Not Found</div></Layout>} />
       </Routes>

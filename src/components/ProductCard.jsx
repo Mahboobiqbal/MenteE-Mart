@@ -55,8 +55,9 @@ const ProductCard = ({ product }) => {
       console.error("increment clicks failed", e);
     } finally {
       const message = `Hi! I'm interested in "${name}" (${formatPrice(price)}).`;
-      const whatsappUrl = `https://wa.me/923404430083?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
+      const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "";
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
     }
   };
 
