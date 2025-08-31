@@ -25,8 +25,8 @@ dist-ssr
 
 .env
 
-AddProduct.jsx 
-AdminDashboard.jsx
-AdminLogin.jsx  
-AdminGate.jsx
-EditProduct.jsx
+# AddProduct.jsx 
+# AdminDashboard.jsx
+# AdminLogin.jsx  
+# AdminGate.jsx
+# EditProduct.jsx
