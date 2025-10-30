@@ -53,8 +53,8 @@ const AddProduct = () => {
     price: "",
     salePrice: "",
     category: "",
-    saleType: "",         // NEW
-    saleStart: "",        // optional ISO datetimes
+    saleType: "", // NEW
+    saleStart: "", // optional ISO datetimes
     saleEnd: "",
     inStock: true,
     featured: false,
@@ -63,12 +63,10 @@ const AddProduct = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
 
   const categories = [
-    { id: "cleansers", name: "Cleansers", icon: "🧴" },
-    { id: "moisturizers", name: "Moisturizers", icon: "✨" },
-    { id: "serums", name: "Serums & Treatments", icon: "💧" },
-    { id: "sunscreens", name: "Sunscreens", icon: "☀️" },
-    { id: "masks", name: "Face Masks", icon: "🎭" },
-    { id: "lipbody", name: "Lip & Body Care", icon: "💋" },
+    { id: "shawal_men", name: "Shawals — Men's", icon: "�" },
+    { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
+    { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
+    { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
   ];
 
   const handleInputChange = (e) => {
@@ -88,7 +86,9 @@ const AddProduct = () => {
     }
 
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    const invalidFiles = files.filter((file) => !validTypes.includes(file.type));
+    const invalidFiles = files.filter(
+      (file) => !validTypes.includes(file.type)
+    );
     if (invalidFiles.length > 0) {
       alert("Please select only image files (JPEG, PNG, WebP)");
       return;
@@ -129,23 +129,130 @@ const AddProduct = () => {
     try {
       const urls = [];
       const base = slugify(formData.name || "product");
+
+      // Try to get an authenticated Supabase session token.
+      // If not signed in but the developer used the client-side admin gate (admin_ok),
+      // send the VITE_ADMIN_PASSCODE to the server as an admin bypass header.
+      const sessionResp = await supabase.auth.getSession();
+      const token = sessionResp?.data?.session?.access_token;
+      const headers = { "Content-Type": "application/json" };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      } else if (
+        typeof window !== "undefined" &&
+        sessionStorage.getItem("admin_ok") === "1"
+      ) {
+        const adminPass = import.meta.env.VITE_ADMIN_PASSCODE;
+        if (!adminPass) {
+          throw new Error(
+            "Admin passcode is not configured (VITE_ADMIN_PASSCODE). Please configure it or sign in."
+          );
+        }
+        headers["x-admin-passcode"] = adminPass;
+      } else {
+        throw new Error(
+          "You must be signed in to upload images. Please sign in and try again."
+        );
+      }
+
       for (let i = 0; i < selectedImages.length; i++) {
         const file = selectedImages[i];
-        const ext = (file.name.split(".").pop() || file.type.split("/")[1] || "jpg").toLowerCase();
+        const ext = (
+          file.name.split(".").pop() ||
+          file.type.split("/")[1] ||
+          "jpg"
+        ).toLowerCase();
         const path = `products/${base}/${Date.now()}-${i}.${ext}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, file, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: file.type,
-          });
-        if (uploadError) throw uploadError;
+        // Try serverless upload first (production / deployed functions).
+        // If the dev server doesn't provide /api (Vite), fallback to client-side Supabase upload.
+        let uploadedPublicUrl = null;
 
-        const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-        urls.push(publicData.publicUrl);
+        // Convert file to base64 for server endpoint (we'll also keep the File for client upload fallback)
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const result = ev.target.result || "";
+            const parts = result.split(",");
+            resolve(parts[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Attempt serverless upload
+        try {
+          const resp = await fetch("/api/upload", {
+            method: "POST",
+            headers: {
+              ...headers,
+            },
+            body: JSON.stringify({
+              fileName: `${base}-${Date.now()}-${i}.${ext}`,
+              fileType: file.type,
+              base64,
+              path,
+            }),
+          });
+
+          // If the endpoint isn't present (Vite dev server typically returns 404), treat as fallback
+          if (!resp.ok) {
+            // If 404, we'll fall back to client upload below. If another status, try to read error and throw.
+            if (resp.status === 404) {
+              // fall through to client-side upload
+              console.warn(
+                "/api/upload not found (dev). Falling back to client-side upload."
+              );
+            } else {
+              const json = await resp.json().catch(() => ({}));
+              throw new Error(
+                json.error || `Upload failed (status ${resp.status})`
+              );
+            }
+          } else {
+            const json = await resp.json();
+            uploadedPublicUrl = json.publicUrl;
+          }
+        } catch (err) {
+          // Network error or fetch failure: fallback to client
+          console.warn(
+            "Server upload failed, falling back to client upload:",
+            err?.message || err
+          );
+        }
+
+        // If server upload didn't produce a URL, attempt client-side upload (useful for local dev)
+        if (!uploadedPublicUrl) {
+          try {
+            // The Supabase client expects the raw File/Blob
+            const { error: uploadError } = await supabase.storage
+              .from(BUCKET)
+              .upload(path, file, { contentType: file.type, upsert: false });
+
+            if (uploadError) {
+              throw uploadError;
+            }
+
+            const { data: publicData } = supabase.storage
+              .from(BUCKET)
+              .getPublicUrl(path);
+            uploadedPublicUrl = publicData?.publicUrl;
+            if (!uploadedPublicUrl)
+              throw new Error(
+                "Failed to obtain public URL from Supabase client upload"
+              );
+          } catch (clientErr) {
+            throw new Error(
+              (clientErr && clientErr.message) ||
+                "Client-side upload failed. To use serverless uploads locally, run your functions (e.g. `vercel dev`) or deploy to Vercel/Netlify."
+            );
+          }
+        }
+
+        urls.push(uploadedPublicUrl);
       }
+
       return urls;
     } finally {
       setImageUploading(false);
@@ -171,7 +278,9 @@ const AddProduct = () => {
 
       // 2) Prepare product payload
       const regularPrice = parseFloat(formData.price);
-      const salePriceNum = formData.salePrice ? parseFloat(formData.salePrice) : null;
+      const salePriceNum = formData.salePrice
+        ? parseFloat(formData.salePrice)
+        : null;
 
       const payload = {
         name: formData.name.trim(),
@@ -196,17 +305,74 @@ const AddProduct = () => {
         sale_type: formData.saleType || null,
         sale_start: formData.saleStart || null,
         sale_end: formData.saleEnd || null,
-        // append boolean flags automatically from SALES
-        ...SALES.reduce((acc, s) => {
-          if (!s.value) return acc;
-          acc[`is_${s.value}_sale`] = formData.saleType === s.value;
-          return acc;
-        }, {}),
       };
 
-      // 3) Insert into Supabase table
-      const { error: insertError } = await supabase.from("products").insert([payload]);
-      if (insertError) throw insertError;
+      // Note: we avoid adding auto-generated boolean `is_*_sale` fields here because
+      // the products table in some projects may not have those columns. Keeping the
+      // payload to a conservative set of known columns prevents "Could not find the
+      // 'is_black_friday_sale' column" errors when inserting.
+
+      // 3) Create product record via secure server endpoint (server uses service role key)
+      const createHeaders = { "Content-Type": "application/json" };
+      const session = await supabase.auth.getSession();
+      const accessToken = session?.data?.session?.access_token;
+      if (accessToken) createHeaders.Authorization = `Bearer ${accessToken}`;
+      else if (
+        typeof window !== "undefined" &&
+        sessionStorage.getItem("admin_ok") === "1"
+      ) {
+        const adminPass = import.meta.env.VITE_ADMIN_PASSCODE;
+        if (!adminPass)
+          throw new Error(
+            "Admin passcode is not configured (VITE_ADMIN_PASSCODE). Cannot create product."
+          );
+        createHeaders["x-admin-passcode"] = adminPass;
+      }
+
+      // Try server-side product creation first (preferred for security).
+      // If the serverless function isn't available (404) or fetch fails in dev, fall back to client-side insert.
+      let created = null;
+      try {
+        const resp = await fetch("/api/create-product", {
+          method: "POST",
+          headers: createHeaders,
+          body: JSON.stringify({ product: payload }),
+        });
+
+        if (!resp.ok) {
+          if (resp.status === 404) {
+            console.warn(
+              "/api/create-product not found (dev). Falling back to client-side insert."
+            );
+          } else {
+            const json = await resp.json().catch(() => ({}));
+            throw new Error(
+              json.error || `Product creation failed (status ${resp.status})`
+            );
+          }
+        } else {
+          const json = await resp.json();
+          created = json.product;
+        }
+      } catch (err) {
+        console.warn(
+          "Server create-product failed, attempting client-side insert:",
+          err?.message || err
+        );
+      }
+
+      if (!created) {
+        // Client-side insert: this will only work if the anon key or the signed-in user has permission.
+        const { data, error } = await supabase
+          .from("products")
+          .insert([payload])
+          .select()
+          .maybeSingle();
+        if (error) {
+          throw new Error(error.message || "Client-side product insert failed");
+        }
+        created = data;
+      }
 
       alert("Product added successfully!");
       navigate("/admin/dashboard");
@@ -240,19 +406,39 @@ const AddProduct = () => {
     <div className="min-h-screen" style={{ backgroundColor: "#f5f7f6" }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="rounded-lg border p-6 mb-8" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
+        <div
+          className="rounded-lg border p-6 mb-8"
+          style={{ backgroundColor: white, borderColor: "#e5e7eb" }}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold" style={{ color: charcoal }}>Add New Product</h1>
-              <p className="mt-1" style={{ color: `${charcoal}b3` }}>Create a new product listing</p>
+              <h1
+                className="text-2xl font-semibold"
+                style={{ color: charcoal }}
+              >
+                Add New Product
+              </h1>
+              <p className="mt-1" style={{ color: `${charcoal}b3` }}>
+                Create a new product listing
+              </p>
             </div>
             <button
               onClick={() => navigate("/admin/dashboard")}
               className="flex items-center"
               style={{ color: charcoal }}
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                ></path>
               </svg>
               Back to Dashboard
             </button>
@@ -261,13 +447,26 @@ const AddProduct = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-lg border p-6" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
-            <h2 className="text-lg font-medium mb-6" style={{ color: charcoal }}>Product Information</h2>
+          <div
+            className="rounded-lg border p-6"
+            style={{ backgroundColor: white, borderColor: "#e5e7eb" }}
+          >
+            <h2
+              className="text-lg font-medium mb-6"
+              style={{ color: charcoal }}
+            >
+              Product Information
+            </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Product Name */}
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>Product Name *</label>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
+                  Product Name *
+                </label>
                 <input
                   type="text"
                   name="name"
@@ -276,15 +475,26 @@ const AddProduct = () => {
                   className="w-full px-4 py-3 rounded-md outline-none transition"
                   placeholder="Enter product name"
                   required
-                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    color: charcoal,
+                    backgroundColor: white,
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)
+                  }
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>Category *</label>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
+                  Category *
+                </label>
                 <select
                   name="category"
                   value={formData.category}
@@ -292,7 +502,9 @@ const AddProduct = () => {
                   className="w-full px-4 py-3 rounded-md outline-none transition bg-white"
                   required
                   style={{ border: "1px solid #d1d5db", color: charcoal }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)
+                  }
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 >
                   <option value="">Select a category</option>
@@ -306,7 +518,12 @@ const AddProduct = () => {
 
               {/* Stock + Featured */}
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>Stock Status</label>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
+                  Stock Status
+                </label>
                 <div className="flex items-center space-x-6">
                   <label className="flex items-center">
                     <input
@@ -317,7 +534,9 @@ const AddProduct = () => {
                       className="h-4 w-4 rounded border"
                       style={{ accentColor: emerald, borderColor: "#d1d5db" }}
                     />
-                    <span className="ml-2 text-sm" style={{ color: charcoal }}>In Stock</span>
+                    <span className="ml-2 text-sm" style={{ color: charcoal }}>
+                      In Stock
+                    </span>
                   </label>
                   <label className="flex items-center">
                     <input
@@ -328,14 +547,19 @@ const AddProduct = () => {
                       className="h-4 w-4 rounded border"
                       style={{ accentColor: emerald, borderColor: "#d1d5db" }}
                     />
-                    <span className="ml-2 text-sm" style={{ color: charcoal }}>Featured Product</span>
+                    <span className="ml-2 text-sm" style={{ color: charcoal }}>
+                      Featured Product
+                    </span>
                   </label>
                 </div>
               </div>
 
               {/* Regular Price */}
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
                   Regular Price (₨) *
                 </label>
                 <input
@@ -348,16 +572,28 @@ const AddProduct = () => {
                   min="0"
                   step="0.01"
                   required
-                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    color: charcoal,
+                    backgroundColor: white,
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)
+                  }
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
 
               {/* Sale Price */}
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
-                  Sale Price (₨) <span className="text-xs" style={{ color: `${charcoal}99` }}>(Optional)</span>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
+                  Sale Price (₨){" "}
+                  <span className="text-xs" style={{ color: `${charcoal}99` }}>
+                    (Optional)
+                  </span>
                 </label>
                 <input
                   type="number"
@@ -368,15 +604,24 @@ const AddProduct = () => {
                   placeholder="0"
                   min="0"
                   step="0.01"
-                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    color: charcoal,
+                    backgroundColor: white,
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)
+                  }
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
 
               {/* Sale Type */}
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
                   Special Sale
                 </label>
                 <select
@@ -396,7 +641,10 @@ const AddProduct = () => {
 
               {/* Description */}
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
                   Description
                   <span
                     onClick={generateDescription}
@@ -414,8 +662,14 @@ const AddProduct = () => {
                   rows="4"
                   className="w-full px-4 py-3 rounded-md outline-none transition"
                   placeholder="Enter product description..."
-                  style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    color: charcoal,
+                    backgroundColor: white,
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)
+                  }
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
               </div>
@@ -423,34 +677,79 @@ const AddProduct = () => {
           </div>
 
           {/* Image Upload Section */}
-          <div className="rounded-lg border p-6" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
-            <h2 className="text-lg font-medium mb-6" style={{ color: charcoal }}>Product Images</h2>
+          <div
+            className="rounded-lg border p-6"
+            style={{ backgroundColor: white, borderColor: "#e5e7eb" }}
+          >
+            <h2
+              className="text-lg font-medium mb-6"
+              style={{ color: charcoal }}
+            >
+              Product Images
+            </h2>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2" style={{ color: charcoal }}>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: charcoal }}
+              >
                 Upload Images * (Up to 3 images)
               </label>
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center transition-colors"
                 style={{ borderColor: "#d1d5db" }}
               >
-                <input type="file" id="images" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
-                <label htmlFor="images" className="cursor-pointer flex flex-col items-center">
-                  <svg className="w-12 h-12 mb-4" style={{ color: "#9ca3af" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                <input
+                  type="file"
+                  id="images"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="images"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <svg
+                    className="w-12 h-12 mb-4"
+                    style={{ color: "#9ca3af" }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    ></path>
                   </svg>
-                  <span className="font-medium" style={{ color: charcoal }}>Click to upload images</span>
-                  <span className="text-sm mt-1" style={{ color: `${charcoal}99` }}>PNG, JPG, WebP up to 5MB each</span>
+                  <span className="font-medium" style={{ color: charcoal }}>
+                    Click to upload images
+                  </span>
+                  <span
+                    className="text-sm mt-1"
+                    style={{ color: `${charcoal}99` }}
+                  >
+                    PNG, JPG, WebP up to 5MB each
+                  </span>
                 </label>
               </div>
               <p className="text-sm mt-2" style={{ color: `${charcoal}99` }}>
-                First image will be the main product image. Maximum 3 images allowed.
+                First image will be the main product image. Maximum 3 images
+                allowed.
               </p>
             </div>
 
             {imagePreviews.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium mb-3" style={{ color: charcoal }}>Image Previews:</h3>
+                <h3
+                  className="text-sm font-medium mb-3"
+                  style={{ color: charcoal }}
+                >
+                  Image Previews:
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative">
@@ -485,13 +784,20 @@ const AddProduct = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="rounded-lg border p-6" style={{ backgroundColor: white, borderColor: "#e5e7eb" }}>
+          <div
+            className="rounded-lg border p-6"
+            style={{ backgroundColor: white, borderColor: "#e5e7eb" }}
+          >
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
                 onClick={() => navigate("/admin/dashboard")}
                 className="px-6 py-3 rounded-md font-medium transition-colors"
-                style={{ border: "1px solid #d1d5db", color: charcoal, backgroundColor: white }}
+                style={{
+                  border: "1px solid #d1d5db",
+                  color: charcoal,
+                  backgroundColor: white,
+                }}
               >
                 Cancel
               </button>
@@ -501,7 +807,11 @@ const AddProduct = () => {
                 className="px-6 py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: emerald, color: white }}
               >
-                {loading ? (imageUploading ? "Uploading Images..." : "Adding Product...") : "Add Product"}
+                {loading
+                  ? imageUploading
+                    ? "Uploading Images..."
+                    : "Adding Product..."
+                  : "Add Product"}
               </button>
             </div>
           </div>

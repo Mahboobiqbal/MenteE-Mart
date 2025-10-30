@@ -15,7 +15,7 @@ const EditProduct = () => {
     salePrice: "",
     category: "",
     imageUrl: "",
-    saleType: "",      // NEW
+    saleType: "", // NEW
     saleStart: "",
     saleEnd: "",
     inStock: true,
@@ -23,12 +23,10 @@ const EditProduct = () => {
   });
 
   const categories = [
-    { id: "cleansers", name: "Cleansers", icon: "🧴" },
-    { id: "moisturizers", name: "Moisturizers", icon: "✨" },
-    { id: "serums", name: "Serums & Treatments", icon: "💧" },
-    { id: "sunscreens", name: "Sunscreens", icon: "☀️" },
-    { id: "masks", name: "Face Masks", icon: "🎭" },
-    { id: "lipbody", name: "Lip & Body Care", icon: "💋" }
+    { id: "shawal_men", name: "Shawals — Men's", icon: "�" },
+    { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
+    { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
+    { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
   ];
 
   const SALES = [
@@ -78,11 +76,14 @@ const EditProduct = () => {
           name: data.name || "",
           description: data.description || "",
           // prefer price field; fallback to sale_price or regular_price if needed
-          price: data.price != null ? String(data.price) : String(data.sale_price ?? data.regular_price ?? ""),
+          price:
+            data.price != null
+              ? String(data.price)
+              : String(data.sale_price ?? data.regular_price ?? ""),
           salePrice: data.sale_price != null ? String(data.sale_price) : "",
           category: data.category || "",
           imageUrl: data.image_url || "",
-          saleType: data.sale_type || "",      // NEW
+          saleType: data.sale_type || "", // NEW
           saleStart: data.sale_start || "",
           saleEnd: data.sale_end || "",
           inStock: data.in_stock !== false,
@@ -101,15 +102,20 @@ const EditProduct = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.price || !formData.category || !formData.imageUrl) {
+    if (
+      !formData.name ||
+      !formData.price ||
+      !formData.category ||
+      !formData.imageUrl
+    ) {
       alert("Please fill in all required fields");
       return;
     }
@@ -136,7 +142,10 @@ const EditProduct = () => {
         }, {}),
       };
 
-      const { error } = await supabase.from("products").update(updates).eq("id", id);
+      const { error } = await supabase
+        .from("products")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
 
       alert("Product updated successfully!");
@@ -173,7 +182,9 @@ const EditProduct = () => {
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-[#660033] mx-auto mb-4"></div>
-          <p className="text-lg text-gray-700 font-medium">Loading product...</p>
+          <p className="text-lg text-gray-700 font-medium">
+            Loading product...
+          </p>
         </div>
       </div>
     );
@@ -186,15 +197,27 @@ const EditProduct = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Edit Product</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Edit Product
+              </h1>
               <p className="text-gray-600 mt-1">Update product information</p>
             </div>
             <button
               onClick={() => navigate("/admin/dashboard")}
               className="text-gray-600 hover:text-gray-900 flex items-center"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                ></path>
               </svg>
               Back to Dashboard
             </button>
@@ -204,8 +227,10 @@ const EditProduct = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Product Information</h2>
-            
+            <h2 className="text-lg font-medium text-gray-900 mb-6">
+              Product Information
+            </h2>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Product Name */}
               <div className="lg:col-span-2">
@@ -268,7 +293,9 @@ const EditProduct = () => {
                       onChange={handleInputChange}
                       className="h-4 w-4 text-[#660033] focus:ring-[#660033] border-gray-300 rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Featured Product</span>
+                    <span className="ml-2 text-sm text-gray-700">
+                      Featured Product
+                    </span>
                   </label>
                 </div>
               </div>
@@ -331,7 +358,8 @@ const EditProduct = () => {
                       alt="Product preview"
                       className="w-32 h-32 object-cover rounded-md border border-gray-300"
                       onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/128x128/F3F4F6/9CA3AF?text=Invalid+URL";
+                        e.target.src =
+                          "https://via.placeholder.com/128x128/F3F4F6/9CA3AF?text=Invalid+URL";
                       }}
                     />
                   </div>
@@ -353,7 +381,10 @@ const EditProduct = () => {
                   name="description"
                   value={formData.description}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, description: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
                   }
                   rows="4"
                   className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"

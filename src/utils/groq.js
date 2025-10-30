@@ -1,9 +1,33 @@
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true, // Enable browser usage
-});
+// Prefer Vite-exposed variable. Keep fallback checks for other environments.
+// Only read Node's process.env when it exists (server-side). In the browser use Vite's import.meta.env.
+const apiKey =
+  (import.meta && import.meta.env && import.meta.env.VITE_GROQ_API_KEY) ||
+  (import.meta && import.meta.env && import.meta.env.GROQ_API_KEY) ||
+  undefined;
+
+let groq = null;
+try {
+  if (!apiKey) {
+    // Do not let the Groq SDK throw an unhelpful error in the browser.
+    // We'll log a clear message and keep `groq` null so callers can handle it gracefully.
+    console.warn(
+      "GROQ API key is missing. Set `VITE_GROQ_API_KEY` in your `.env` (and restart the dev server). See README for details."
+    );
+  }
+
+  groq = new Groq({
+    apiKey: apiKey,
+    dangerouslyAllowBrowser: true, // Enable browser usage
+  });
+} catch (err) {
+  console.error(
+    "Failed to initialize Groq client. Ensure VITE_GROQ_API_KEY is set in .env and restart the dev server.",
+    err
+  );
+  groq = null;
+}
 
 export const fetchDescription = async (query) => {
   if (!groq) {
