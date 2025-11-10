@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "./ProductCard";
 
-const FeaturedProducts = ({ current = [], loading = false }) => {
+const FeaturedProducts = ({ products = [], loading = false }) => {
   const navigate = useNavigate();
 
-  // Show only 6 products on the home page instead of 12
-  const featuredProducts = current.slice(0, 6);
+  const featuredProducts = useMemo(() => {
+    if (!Array.isArray(products)) return [];
+    return products.slice(0, 6);
+  }, [products]);
 
   return (
     <section className="mt-12">
@@ -26,7 +28,9 @@ const FeaturedProducts = ({ current = [], loading = false }) => {
             />
           ))
         ) : featuredProducts.length > 0 ? (
-          featuredProducts.map((p) => <ProductCard key={p.id} product={p} />)
+          featuredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))
         ) : (
           <div className="col-span-full py-8 text-center text-gray-500">
             No products available.
@@ -34,14 +38,14 @@ const FeaturedProducts = ({ current = [], loading = false }) => {
         )}
       </div>
 
-      {current.length > 6 && (
+      {Array.isArray(products) && products.length > 6 && (
         <div className="text-center mt-8">
           <button
             onClick={() => navigate("/products")}
             className="px-8 py-3 rounded-full font-bold border-2 transition-all duration-300 hover:bg-[#008060]/10"
             style={{ borderColor: "#008060", color: "#008060" }}
           >
-            View All {current.length} Products →
+            View All {products.length} Products →
           </button>
         </div>
       )}

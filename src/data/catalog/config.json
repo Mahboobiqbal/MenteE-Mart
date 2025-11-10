@@ -1,0 +1,71 @@
+{
+  "app": {
+    "name": "MenteE-Mart",
+    "version": "1.0.0",
+    "description": "Premium Traditional Pakistani E-commerce Platform",
+    "author": "MenteE Digital",
+    "contact": {
+      "email": "info@mentee.pk",
+      "phone": "+92-300-",
+      "address": "Lahore, Punjab, Pakistan"
+    },
+    "social": {
+      "facebook": "https://facebook.com/mentee",
+      "instagram": "https://instagram.com/mentee_official",
+      "twitter": "https://twitter.com/mentee_pk"
+    },
+    "features": {
+      "search": true,
+      "filters": true,
+      "wishlist": true,
+      "reviews": true,
+      "chatbot": true,
+      "multiLanguage": false,
+      "darkMode": true
+    },
+    "limits": {
+      "maxProductsPerPage": 20,
+      "maxWishlistItems": 50,
+      "maxCartItems": 100,
+      "maxImageSize": "5MB"
+    }
+  },
+  "ui": {
+    "theme": {
+      "primaryColor": "#6366f1",
+      "secondaryColor": "#8b5cf6",
+      "accentColor": "#06b6d4",
+      "successColor": "#10b981",
+      "warningColor": "#f59e0b",
+      "errorColor": "#ef4444"
+    },
+    "layout": {
+      "headerHeight": "4rem",
+      "footerHeight": "3rem",
+      "sidebarWidth": "16rem",
+      "containerMaxWidth": "1280px"
+    },
+    "animations": {
+      "enabled": true,
+      "duration": "300ms",
+      "easing": "ease-in-out"
+    }
+  },
+  "api": {
+    "baseURL": "https://api.mentee.pk",
+    "timeout": 10000,
+    "retryAttempts": 3,
+    "endpoints": {
+      "products": "/products",
+      "categories": "/categories",
+      "stores": "/stores",
+      "orders": "/orders",
+      "users": "/users"
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2025-11-10T19:27:38.000Z",
+    "version": "1.0",
+    "environment": "production"
+  }
+}

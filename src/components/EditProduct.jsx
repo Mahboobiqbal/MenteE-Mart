@@ -2,18 +2,23 @@ import React, { useState, useEffect } from "react";
 import supabase from "../utils/supabase";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchDescription } from "../utils/groq";
+import { getCachedData, loadCategories, loadStores } from "../utils/dataLoader";
 
 const EditProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [stores, setStores] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     salePrice: "",
     category: "",
+    store: "", // NEW: Store field
     imageUrl: "",
     saleType: "", // NEW
     saleStart: "",
@@ -22,12 +27,36 @@ const EditProduct = () => {
     featured: false,
   });
 
-  const categories = [
-    { id: "shawal_men", name: "Shawals — Men's", icon: "�" },
-    { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
-    { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
-    { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
-  ];
+  // Load categories and stores from JSON files
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [categoriesData, storesData] = await Promise.all([
+          getCachedData("categories", loadCategories),
+          getCachedData("stores", loadStores),
+        ]);
+        setCategories(categoriesData.filter((cat) => cat.id !== "all")); // Remove "All Products"
+        setStores(storesData.filter((store) => store.id !== "all")); // Remove "All Stores"
+      } catch (error) {
+        console.error("Error loading data:", error);
+        // Fallback to hardcoded data
+        setCategories([
+          { id: "shawal_men", name: "Shawals — Men's", icon: "👕" },
+          { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
+          { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
+          { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
+        ]);
+        setStores([
+          { id: "mentee", name: "MenteE" },
+          { id: "nainzaka", name: "Nainzaka" },
+        ]);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const SALES = [
     { value: "", label: "No special sale" },
@@ -82,6 +111,7 @@ const EditProduct = () => {
               : String(data.sale_price ?? data.regular_price ?? ""),
           salePrice: data.sale_price != null ? String(data.sale_price) : "",
           category: data.category || "",
+          store: data.store || "", // NEW: Store field
           imageUrl: data.image_url || "",
           saleType: data.sale_type || "", // NEW
           saleStart: data.sale_start || "",
@@ -114,6 +144,7 @@ const EditProduct = () => {
       !formData.name ||
       !formData.price ||
       !formData.category ||
+      !formData.store ||
       !formData.imageUrl
     ) {
       alert("Please fill in all required fields");
@@ -128,6 +159,7 @@ const EditProduct = () => {
         price: parseFloat(formData.price),
         sale_price: formData.salePrice ? parseFloat(formData.salePrice) : null,
         category: formData.category,
+        store: formData.store, // NEW: Store field
         image_url: formData.imageUrl,
         in_stock: !!formData.inStock,
         featured: !!formData.featured,
@@ -135,11 +167,6 @@ const EditProduct = () => {
         sale_type: formData.saleType || null,
         sale_start: formData.saleStart || null,
         sale_end: formData.saleEnd || null,
-        ...SALES.reduce((acc, s) => {
-          if (!s.value) return acc;
-          acc[`is_${s.value}_sale`] = formData.saleType === s.value;
-          return acc;
-        }, {}),
       };
 
       const { error } = await supabase
@@ -177,13 +204,13 @@ const EditProduct = () => {
     }
   };
 
-  if (fetchLoading) {
+  if (fetchLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-[#660033] mx-auto mb-4"></div>
           <p className="text-lg text-gray-700 font-medium">
-            Loading product...
+            {dataLoading ? "Loading form data..." : "Loading product..."}
           </p>
         </div>
       </div>
@@ -264,6 +291,27 @@ const EditProduct = () => {
                   {categories.map((category) => (
                     <option key={category.id} value={category.name}>
                       {category.icon} {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Store */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Store *
+                </label>
+                <select
+                  name="store"
+                  value={formData.store}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent bg-white"
+                  required
+                >
+                  <option value="">Select a store</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.name}>
+                      {store.name} Products
                     </option>
                   ))}
                 </select>

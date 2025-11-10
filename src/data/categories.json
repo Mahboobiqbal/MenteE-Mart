@@ -1,0 +1,10 @@
+{
+  "categories": [
+    { "id": "all", "name": "All Products" },
+    { "id": "shawals-men", "name": "Shawals — Men's" },
+    { "id": "shawals-women", "name": "Shawals — Women's" },
+    { "id": "peshawar-chappals", "name": "Peshawar Chappals" },
+    { "id": "citrale-caps", "name": "Citrale Caps" },
+    { "id": "citrale-caps", "name": "Citrale Caps" }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "brands": [
+    {
+      "id": "mentee",
+      "name": "MenteE",
+      "logo": "/assets/brands/mentee-logo.png",
+      "description": "Premium traditional Pakistani footwear brand",
+      "country": "Pakistan",
+      "established": "2020",
+      "website": "https://mentee.pk",
+      "specialties": [
+        "Traditional Shawals",
+        "Handcrafted Footwear",
+        "Custom Orders"
+      ],
+      "rating": 4.8,
+      "active": true
+    },
+    {
+      "id": "nainzaka",
+      "name": "Nainzaka",
+      "logo": "/assets/brands/nainzaka-logo.png",
+      "description": "Authentic Pakistani cultural accessories",
+      "country": "Pakistan",
+      "established": "2019",
+      "website": "https://nainzaka.com",
+      "specialties": [
+        "Traditional Caps",
+        "Cultural Accessories",
+        "Heritage Collections"
+      ],
+      "rating": 4.6,
+      "active": true
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-11-10T19:26:32.000Z",
+    "version": "1.0",
+    "totalBrands": 2
+  }
+}

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../utils/supabase";
 
 const QuickViewModal = ({ product, isOpen, onClose }) => {
   const navigate = useNavigate();
@@ -15,29 +14,10 @@ const QuickViewModal = ({ product, isOpen, onClose }) => {
       const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
       setIsWishlisted(wishlist.includes(product.id));
 
-      // Fetch recent reviews for this product
-      fetchRecentReviews();
+      const reviewsList = Array.isArray(product.review) ? product.review : [];
+      setRecentReviews(reviewsList.slice(0, 2));
     }
   }, [product, isOpen]);
-
-  const fetchRecentReviews = async () => {
-    if (!product?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("product_reviews")
-        .select("rating, comment, user_name, created_at")
-        .eq("product_id", product.id)
-        .order("created_at", { ascending: false })
-        .limit(2);
-
-      if (!error && data) {
-        setRecentReviews(data);
-      }
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-    }
-  };
 
   const images = [product?.image_url, product?.additional_images]
     .flat()
@@ -316,27 +296,18 @@ const QuickViewModal = ({ product, isOpen, onClose }) => {
                   <div className="space-y-3">
                     {recentReviews.map((review, index) => (
                       <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <span
-                                key={star}
-                                className={`text-sm ${
-                                  star <= review.rating
-                                    ? "text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              >
-                                ⭐
-                              </span>
-                            ))}
-                          </div>
-                          <span className="text-sm text-gray-600">
-                            {review.user_name}
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-700">
+                            {review.author || "Anonymous"}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {review.created_at
+                              ? new Date(review.created_at).toLocaleDateString()
+                              : "Recently"}
                           </span>
                         </div>
                         <p className="text-sm text-gray-700 line-clamp-2">
-                          {review.comment}
+                          {review.message}
                         </p>
                       </div>
                     ))}

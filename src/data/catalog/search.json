@@ -1,0 +1,72 @@
+{
+  "searchTags": {
+    "product": [
+      "traditional",
+      "handcrafted",
+      "leather",
+      "cotton",
+      "embroidered",
+      "casual",
+      "formal",
+      "comfortable",
+      "durable",
+      "authentic",
+      "pakistani",
+      "heritage",
+      "premium",
+      "custom",
+      "seasonal"
+    ],
+    "category": [
+      "men's footwear",
+      "women's footwear",
+      "caps",
+      "traditional wear",
+      "cultural accessories",
+      "festive wear",
+      "daily wear"
+    ],
+    "brand": [
+      "mentee",
+      "nainzaka",
+      "traditional",
+      "heritage",
+      "premium quality"
+    ],
+    "material": ["leather", "fabric", "silk", "cotton", "velvet", "synthetic"],
+    "style": ["minimalist", "decorative", "plain", "patterned", "colorful"]
+  },
+  "popularSearches": [
+    { "term": "men's shawals", "count": 245 },
+    { "term": "traditional caps", "count": 198 },
+    { "term": "embroidered shoes", "count": 176 },
+    { "term": "leather footwear", "count": 154 },
+    { "term": "women's shawals", "count": 132 }
+  ],
+  "trendingKeywords": [
+    "traditional",
+    "handcrafted",
+    "comfortable",
+    "authentic",
+    "premium"
+  ],
+  "filterOptions": {
+    "price": {
+      "min": 500,
+      "max": 10000,
+      "step": 500
+    },
+    "rating": {
+      "min": 1,
+      "max": 5,
+      "step": 0.5
+    },
+    "dateAdded": {
+      "range": "1 year"
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2025-11-10T19:27:26.000Z",
+    "version": "1.0"
+  }
+}

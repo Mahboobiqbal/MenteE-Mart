@@ -1,0 +1,137 @@
+{
+  "catalog": {
+    "name": "MenteE-Mart Data Catalog",
+    "version": "1.0.0",
+    "description": "Comprehensive data structure for the e-commerce platform",
+    "lastUpdated": "2025-11-10T19:27:54.000Z",
+    "structure": {
+      "categories": {
+        "file": "categories.json",
+        "description": "Product categories with subcategories and metadata",
+        "purpose": "Organize products into hierarchical categories",
+        "keyFields": [
+          "id",
+          "name",
+          "description",
+          "icon",
+          "color",
+          "featured",
+          "subcategories"
+        ]
+      },
+      "stores": {
+        "file": "stores.json",
+        "description": "Store information including contact details and social media",
+        "purpose": "Manage store profiles and vendor information",
+        "keyFields": [
+          "id",
+          "name",
+          "description",
+          "logo",
+          "contact",
+          "social",
+          "rating",
+          "specialties"
+        ]
+      },
+      "brands": {
+        "file": "brands.json",
+        "description": "Brand information and metadata",
+        "purpose": "Organize products by brand identity",
+        "keyFields": [
+          "id",
+          "name",
+          "logo",
+          "description",
+          "country",
+          "specialties",
+          "rating"
+        ]
+      },
+      "locations": {
+        "file": "locations.json",
+        "description": "Geographic locations including cities and regions",
+        "purpose": "Support location-based features and shipping",
+        "keyFields": ["id", "name", "province", "country", "coordinates"]
+      },
+      "attributes": {
+        "file": "attributes.json",
+        "description": "Product attributes like sizes, colors, materials, and styles",
+        "purpose": "Define product characteristics and variations",
+        "keyFields": ["sizes", "colors", "materials", "styles"]
+      },
+      "promotions": {
+        "file": "promotions.json",
+        "description": "Active promotions, discounts, and special offers",
+        "purpose": "Manage marketing campaigns and customer incentives",
+        "keyFields": [
+          "id",
+          "name",
+          "type",
+          "value",
+          "code",
+          "startDate",
+          "endDate",
+          "active"
+        ]
+      },
+      "search": {
+        "file": "search.json",
+        "description": "Search-related data including tags, popular searches, and filter options",
+        "purpose": "Enhance search functionality and user experience",
+        "keyFields": [
+          "searchTags",
+          "popularSearches",
+          "trendingKeywords",
+          "filterOptions"
+        ]
+      },
+      "config": {
+        "file": "config.json",
+        "description": "Application configuration including UI settings and API endpoints",
+        "purpose": "Centralized application settings and constants",
+        "keyFields": ["app", "ui", "api", "features", "limits"]
+      }
+    },
+    "usage": {
+      "import": "Import specific catalogs: import { categories, stores } from '@/data/catalog/categories.json'",
+      "organization": "Each file is self-contained with metadata and versioning",
+      "extension": "Easy to add new catalog types following the established pattern",
+      "validation": "Each file includes lastUpdated timestamp and version for data integrity"
+    },
+    "dataTypes": {
+      "enumerations": ["categories", "stores", "brands", "locations"],
+      "attributes": ["attributes", "sizes", "colors", "materials", "styles"],
+      "marketing": ["promotions", "discounts"],
+      "configuration": ["search", "config"]
+    }
+  },
+  "legacy": {
+    "description": "Original data files maintained for backward compatibility",
+    "files": [
+      {
+        "file": "../categories.json",
+        "status": "legacy",
+        "migration": "Use catalog/categories.json for enhanced features"
+      },
+      {
+        "file": "../stores.json",
+        "status": "legacy",
+        "migration": "Use catalog/stores.json for enhanced features"
+      },
+      {
+        "file": "../dummydata.json",
+        "status": "products",
+        "migration": "Use for product data reference (consider migrating to database)"
+      }
+    ]
+  },
+  "recommendations": {
+    "1": "Migrate from legacy JSON files to new catalog structure",
+    "2": "Implement data validation using JSON Schema",
+    "3": "Add TypeScript interfaces for type safety",
+    "4": "Consider migrating to a proper database for product data",
+    "5": "Implement caching strategy for frequently accessed catalog data",
+    "6": "Add data versioning and migration scripts"
+  }
+}

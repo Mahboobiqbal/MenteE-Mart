@@ -1,9 +1,14 @@
 // filepath: h:\Code\Nainzaka Aesthetics\src\pages\Products.jsx
-import React, { useState, useEffect, useMemo } from "react";
-import supabase from "../utils/supabase";
+import React, { useState, useEffect } from "react";
 import ProductCard from "../components/ProductCard";
 import QuickViewModal from "../components/QuickViewModal";
 import AdvancedFilters from "../components/AdvancedFilters";
+import {
+  getCachedData,
+  loadCategories,
+  loadStores,
+  loadProducts,
+} from "../utils/dataLoader";
 
 const emerald = "#008060";
 const yellow = "#FFD700";
@@ -16,55 +21,102 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStore, setSelectedStore] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 50000]);
   const [sortBy, setSortBy] = useState("name");
   const [currentPage, setCurrentPage] = useState(1);
-  const [quickViewProduct, setQuickViewProduct] = useState(null);
-  const [showQuickView, setShowQuickView] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
+  const [categoryOptions, setCategoryOptions] = useState([
+    { id: "all", name: "All Products" },
+  ]);
+  const [storeOptions, setStoreOptions] = useState([
+    { id: "all", name: "All Stores" },
+  ]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true);
+
   const ITEMS_PER_PAGE = 15;
 
-  const categories = useMemo(
-    () => [
-      "All Products",
-      "Shawals — Men's",
-      "Shawals — Women's",
-      "Peshawar Chappals",
-      "Citrale Caps",
-    ],
-    []
-  );
-
-  // Fetch products from Supabase
+  // Fetch taxonomy data (categories and stores)
   useEffect(() => {
+    let mounted = true;
+
+    const fetchTaxonomy = async () => {
+      try {
+        const [categoryData, storeData] = await Promise.all([
+          getCachedData("categories", loadCategories),
+          getCachedData("stores", loadStores),
+        ]);
+
+        if (!mounted) return;
+
+        const seenCategories = new Set();
+        const categoryList = [];
+        [{ id: "all", name: "All Products" }, ...(categoryData || [])].forEach(
+          (category) => {
+            if (!category) return;
+            const id = category.id || (category.name || "").toLowerCase();
+            if (!id || seenCategories.has(id)) return;
+            seenCategories.add(id);
+            categoryList.push({
+              id,
+              name: category.name || id,
+            });
+          }
+        );
+
+        const seenStores = new Set();
+        const storeList = [];
+        [{ id: "all", name: "All Stores" }, ...(storeData || [])].forEach(
+          (store) => {
+            if (!store) return;
+            const id = store.id || (store.name || "").toLowerCase();
+            if (!id || seenStores.has(id)) return;
+            seenStores.add(id);
+            storeList.push({
+              id,
+              name: store.name || id,
+            });
+          }
+        );
+
+        setCategoryOptions(categoryList);
+        setStoreOptions(storeList);
+      } catch (error) {
+        console.error("Error loading categories or stores:", error);
+      } finally {
+        if (mounted) setTaxonomyLoading(false);
+      }
+    };
+
+    fetchTaxonomy();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Fetch products from Supabase via shared loader
+  useEffect(() => {
+    let mounted = true;
+
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (error) throw error;
+        const data = await loadProducts();
+        if (!mounted) return;
         setProducts(data || []);
       } catch (error) {
         console.error("Error fetching products:", error);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
+
     fetchProducts();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  // Quick View handlers
-  const handleQuickView = (product) => {
-    setQuickViewProduct(product);
-    setShowQuickView(true);
-  };
-
-  const closeQuickView = () => {
-    setShowQuickView(false);
-    setQuickViewProduct(null);
-  };
 
   // Enhanced filtering and sorting
   useEffect(() => {
@@ -80,13 +132,25 @@ const Products = () => {
       );
     }
 
-    if (selectedCategory !== "all" && selectedCategory !== "All Products") {
+    const activeCategory = categoryOptions.find(
+      (category) => category.id === selectedCategory
+    );
+
+    if (activeCategory && activeCategory.id !== "all") {
+      const categoryName = (activeCategory.name || "").toLowerCase();
       filtered = filtered.filter(
-        (p) =>
-          (p.category || "").toLowerCase() === selectedCategory.toLowerCase() ||
-          (p.category || "")
-            .toLowerCase()
-            .includes(selectedCategory.toLowerCase())
+        (p) => (p.category || "").toLowerCase() === categoryName
+      );
+    }
+
+    const activeStore = storeOptions.find(
+      (store) => store.id === selectedStore
+    );
+
+    if (activeStore && activeStore.id !== "all") {
+      const storeName = (activeStore.name || "").toLowerCase();
+      filtered = filtered.filter(
+        (p) => (p.store || "").toLowerCase() === storeName
       );
     }
 
@@ -115,7 +179,16 @@ const Products = () => {
     });
 
     setFilteredProducts(filtered);
-  }, [products, searchTerm, selectedCategory, priceRange, sortBy]);
+  }, [
+    products,
+    searchTerm,
+    selectedCategory,
+    selectedStore,
+    priceRange,
+    sortBy,
+    categoryOptions,
+    storeOptions,
+  ]);
 
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -125,7 +198,7 @@ const Products = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, priceRange, sortBy]);
+  }, [searchTerm, selectedCategory, selectedStore, priceRange, sortBy]);
 
   if (loading) {
     return (
@@ -242,29 +315,61 @@ const Products = () => {
 
             {/* Category pills */}
             <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200"
-                  style={
-                    selectedCategory === category.id
-                      ? {
-                          background: emerald,
-                          color: white,
-                          boxShadow: "0 2px 6px rgba(0,128,96,0.25)",
-                        }
-                      : {
-                          background: "#F9FAFB",
-                          color: charcoal,
-                          border: "1px solid #e5e7eb",
-                        }
-                  }
-                >
-                  <span className="mr-2">{category.icon}</span>
-                  {category.name}
-                </button>
-              ))}
+              {taxonomyLoading && categoryOptions.length <= 1
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className="px-4 py-2 rounded-lg text-sm bg-gray-100 animate-pulse"
+                    >
+                      &nbsp;
+                    </span>
+                  ))
+                : categoryOptions.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className="px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200"
+                      style={
+                        selectedCategory === category.id
+                          ? {
+                              background: emerald,
+                              color: white,
+                              boxShadow: "0 2px 6px rgba(0,128,96,0.25)",
+                            }
+                          : {
+                              background: "#F9FAFB",
+                              color: charcoal,
+                              border: "1px solid #e5e7eb",
+                            }
+                      }
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+            </div>
+
+            {/* Store Filter */}
+            <div className="flex flex-wrap gap-4">
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="px-4 py-2 rounded-lg text-sm transition-all duration-200 outline-none"
+                style={{
+                  background: "#F9FAFB",
+                  border: "1px solid #e5e7eb",
+                  color: charcoal,
+                }}
+                onFocus={(e) =>
+                  (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}66`)
+                }
+                onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+              >
+                {storeOptions.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Sort & Price */}
@@ -324,7 +429,7 @@ const Products = () => {
             <h2 className="text-xl font-medium" style={{ color: charcoal }}>
               {selectedCategory === "all"
                 ? "All Products"
-                : categories.find((c) => c.id === selectedCategory)?.name}
+                : categoryOptions.find((c) => c.id === selectedCategory)?.name}
             </h2>
             <p className="text-sm" style={{ color: `${charcoal}99` }}>
               Showing{" "}
@@ -366,6 +471,7 @@ const Products = () => {
               onClick={() => {
                 setSearchTerm("");
                 setSelectedCategory("all");
+                setSelectedStore("all");
                 setPriceRange([0, 50000]);
               }}
               className="mt-6 px-8 py-3 rounded-xl font-medium transition-all"

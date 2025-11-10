@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../utils/supabase";
 import { fetchDescription } from "../utils/groq";
+import { getCachedData, loadCategories, loadStores } from "../utils/dataLoader";
+import {
+  productSupportsColumn,
+  rememberProductColumnSupport,
+} from "../utils/productSchema";
 
 const emerald = "#008060";
 const yellow = "#FFD700";
@@ -47,12 +52,18 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [storeSupported, setStoreSupported] = useState(true);
+  const [storeSupportChecked, setStoreSupportChecked] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     salePrice: "",
     category: "",
+    store: "",
     saleType: "", // NEW
     saleStart: "", // optional ISO datetimes
     saleEnd: "",
@@ -62,12 +73,59 @@ const AddProduct = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
 
-  const categories = [
-    { id: "shawal_men", name: "Shawals — Men's", icon: "�" },
-    { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
-    { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
-    { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
-  ];
+  // Load categories and stores from JSON files
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [categoriesData, storesData] = await Promise.all([
+          getCachedData("categories", loadCategories),
+          getCachedData("stores", loadStores),
+        ]);
+        setCategories(categoriesData.filter((cat) => cat.id !== "all")); // Remove "All Products"
+        setStores(storesData.filter((store) => store.id !== "all")); // Remove "All Stores"
+      } catch (error) {
+        console.error("Error loading data:", error);
+        // Fallback to hardcoded data
+        setCategories([
+          { id: "shawal_men", name: "Shawals — Men's", icon: "👕" },
+          { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
+          { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
+          { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
+        ]);
+        setStores([
+          { id: "mentee", name: "MenteE" },
+          { id: "nainzaka", name: "Nainzaka" },
+        ]);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const supported = await productSupportsColumn("store");
+        if (!active) return;
+        setStoreSupported(supported);
+        rememberProductColumnSupport("store", supported);
+      } finally {
+        if (active) setStoreSupportChecked(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!storeSupported) {
+      setFormData((prev) => (prev.store ? { ...prev, store: "" } : prev));
+    }
+  }, [storeSupported]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -266,6 +324,10 @@ const AddProduct = () => {
       alert("Please fill in all required fields");
       return;
     }
+    if (storeSupported && !formData.store) {
+      alert("Please select a store for this product");
+      return;
+    }
     if (selectedImages.length === 0) {
       alert("Please select at least one product image");
       return;
@@ -296,6 +358,7 @@ const AddProduct = () => {
         additional_images: imageUrls.slice(1),
         rating: 0,
         reviews: 0,
+        review: [],
         views: 0,
         clicks: 0,
         whatsapp_clicks: 0,
@@ -306,6 +369,10 @@ const AddProduct = () => {
         sale_start: formData.saleStart || null,
         sale_end: formData.saleEnd || null,
       };
+
+      if (storeSupported && formData.store) {
+        payload.store = formData.store;
+      }
 
       // Note: we avoid adding auto-generated boolean `is_*_sale` fields here because
       // the products table in some projects may not have those columns. Keeping the
@@ -378,7 +445,21 @@ const AddProduct = () => {
       navigate("/admin/dashboard");
     } catch (error) {
       console.error("Supabase error:", error);
-      alert("Error adding product: " + (error?.message || "Unknown error"));
+      const message = error?.message || "";
+      const storeMissing =
+        /column[^\n]*store[^\n]*(does not exist|schema cache)/i.test(message);
+
+      if (storeMissing) {
+        rememberProductColumnSupport("store", false);
+        setStoreSupported(false);
+        setStoreSupportChecked(true);
+        setFormData((prev) => (prev.store ? { ...prev, store: "" } : prev));
+        alert(
+          "Supabase does not have a 'store' column yet. Store selection has been disabled; please submit the product again."
+        );
+      } else {
+        alert("Error adding product: " + (message || "Unknown error"));
+      }
     } finally {
       setLoading(false);
     }
@@ -401,6 +482,22 @@ const AddProduct = () => {
       alert("Failed to generate description: " + error.message);
     }
   };
+
+  // Show loading state while data is being loaded
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "#f5f7f6" }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-[#008060] mx-auto mb-4"></div>
+            <p className="text-lg text-gray-700 font-medium">
+              Loading form data...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f5f7f6" }}>
@@ -614,6 +711,53 @@ const AddProduct = () => {
                   }
                   onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
                 />
+              </div>
+
+              {/* Store */}
+              <div>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: charcoal }}
+                >
+                  {storeSupported
+                    ? "Store *"
+                    : "Store (Supabase column missing)"}
+                </label>
+                <select
+                  name="store"
+                  value={formData.store}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-md outline-none transition bg-white"
+                  required={storeSupported}
+                  disabled={!storeSupported}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    color: charcoal,
+                    backgroundColor: storeSupported ? white : "#f9fafb",
+                    cursor: storeSupported ? "pointer" : "not-allowed",
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.boxShadow = `0 0 0 2px ${yellow}`)
+                  }
+                  onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
+                >
+                  <option value="">Select a store</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.name}>
+                      {store.name} Products
+                    </option>
+                  ))}
+                </select>
+                {!storeSupported && storeSupportChecked && (
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: `${charcoal}99` }}
+                  >
+                    The current Supabase schema does not include a `store`
+                    column. Products will be created without a store until the
+                    column is added.
+                  </p>
+                )}
               </div>
 
               {/* Sale Type */}

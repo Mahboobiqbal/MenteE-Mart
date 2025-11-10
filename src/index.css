@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/* Animation for Nainzaka Aesthetic collaboration section */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 20s linear infinite;
+}
+
+/* Ensure smooth animation on all browsers */
+@media (prefers-reduced-motion: reduce) {
+  .animate-scroll {
+    animation: none;
+  }
+}
