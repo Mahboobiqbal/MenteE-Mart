@@ -1,18 +1,15 @@
 // filepath: h:\Code\Nainzaka Aesthetics\src\components\Home.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import supabase from "../utils/supabase";
-import { Link, useLocation, useNavigate } from "react-router-dom";
 import HeroSection from "./HeroSection";
 import Showcase from "./Showcase";
-import TrendingNow from "./TrendingNow";
-import DealsGrid from "./DealsGrid";
-import ProductsGrid from "./ProductsGrid";
-import SectionHeader from "./SectionHeader";
-import ServiceMap from "./ServiceMap"
+import QuickCategories from "./QuickCategories";
+import PopularProducts from "./PopularProducts";
+import FeaturedProducts from "./FeaturedProducts";
+import ServiceMapMobile from "./ServiceMapMobile";
+
 const PAGE_SIZE = 12;
-const emerald = "#008060";
 const white = "#FFFFFF";
-const charcoal = "#333333";
 
 const normalize = (p) => ({
   id: p.id,
@@ -37,13 +34,9 @@ const normalize = (p) => ({
 const Home = () => {
   const [products, setProducts] = useState([]); // normalized products
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // lists + pagination
-  const [generalList, setGeneralList] = useState([]);
+  // current products for featured section
   const [current, setCurrent] = useState([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   const [saleProducts, setSaleProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
@@ -52,11 +45,6 @@ const Home = () => {
   const [showcase, setShowcase] = useState([]);
   const [scIndex, setScIndex] = useState(0);
   const [topFallback, setTopFallback] = useState(null);
-  const [loadingTop, setLoadingTop] = useState(false);
-
-  const location = useLocation();
-  const navigate = useNavigate();
-  const qparams = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
   // Single fetch + normalize
   useEffect(() => {
@@ -64,24 +52,25 @@ const Home = () => {
     (async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false });
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false });
         if (error) throw error;
         if (!mounted) return;
         const normalized = (data || []).map(normalize);
         setProducts(normalized);
 
         // derived lists
-        setGeneralList(normalized);
         setSaleProducts(normalized.filter((p) => p.sale_price || p.sale_type));
-        setTrendingProducts(normalized.filter((p) => p.featured || (p.views || 0) > 50));
+        setTrendingProducts(
+          normalized.filter((p) => p.featured || (p.views || 0) > 50)
+        );
 
-        const pages = Math.max(1, Math.ceil(normalized.length / PAGE_SIZE));
-        setTotalPages(pages);
-        setPage(1);
+        // Set first 12 products for featured section
         setCurrent(normalized.slice(0, PAGE_SIZE));
       } catch (e) {
         console.error("Failed to load products:", e);
-        setError(e?.message || "Failed to load products");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -90,12 +79,6 @@ const Home = () => {
       mounted = false;
     };
   }, []);
-
-  // recompute current page slice when page or generalList changes
-  useEffect(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    setCurrent(generalList.slice(start, start + PAGE_SIZE));
-  }, [page, generalList]);
 
   // Build showcase from already-fetched products (no extra DB calls)
   useEffect(() => {
@@ -106,11 +89,15 @@ const Home = () => {
     }
 
     // Top viewed product
-    const sortedByViews = [...products].sort((a, b) => (b.views || 0) - (a.views || 0));
+    const sortedByViews = [...products].sort(
+      (a, b) => (b.views || 0) - (a.views || 0)
+    );
     const top = sortedByViews[0] ?? null;
 
     // specials: featured or sale_type
-    const specials = products.filter((p) => p.featured || p.sale_type).slice(0, 2);
+    const specials = products
+      .filter((p) => p.featured || p.sale_type)
+      .slice(0, 2);
 
     // merged: top first (if not already included), then specials (dedupe), cap to 2
     const merged = [];
@@ -128,19 +115,6 @@ const Home = () => {
     }
   }, [products]);
 
-  const onSearchSubmit = (e) => {
-    e.preventDefault();
-    const q = new FormData(e.target).get("q")?.toString().trim().toLowerCase() || "";
-    if (!q) {
-      setGeneralList(products);
-      setPage(1);
-      return;
-    }
-    const filtered = products.filter((p) => (p.name || "").toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q));
-    setGeneralList(filtered);
-    setPage(1);
-  };
-
   // Ensure showcase index resets when slides change
   useEffect(() => {
     setScIndex(0);
@@ -149,11 +123,14 @@ const Home = () => {
   return (
     <div className="w-full" style={{ backgroundColor: white }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* <SectionHeader badge="Limited-time Deals" title="Discover Products" subtitle="Shop Smart. Live Better." /> */}
-
-        {/* Hero (top) */}
+        {/* Hero Section */}
         <section>
           <HeroSection />
+        </section>
+
+        {/* NEW: Quick Categories */}
+        <section className="mt-8">
+          <QuickCategories />
         </section>
 
         {/* Showcase / top-viewed / specials */}
@@ -161,24 +138,24 @@ const Home = () => {
           <Showcase
             showcase={showcase}
             topFallback={topFallback}
-            loadingTop={loadingTop}
             scIndex={scIndex}
             setScIndex={setScIndex}
           />
         </section>
 
-        {/* Limited-time deals under Hero (user requested) */}
-        <DealsGrid saleProducts={saleProducts} loading={loading} />
+        {/* IMPROVED: Popular Products (Deals + Trending combined) */}
+        <PopularProducts
+          saleProducts={saleProducts}
+          trendingProducts={trendingProducts}
+          loading={loading}
+        />
 
-        {/* Trending */}
-        <TrendingNow trendingProducts={trendingProducts} loading={loading} />
+        {/* IMPROVED: Featured Products (reduced from full grid) */}
+        <FeaturedProducts current={current} loading={loading} />
 
-        {/* All products grid */}
-        <ProductsGrid current={current} loading={loading} totalCount={generalList.length} page={page} setPage={setPage} totalPages={totalPages} />
-
-        {/* Service Map */}
+        {/* IMPROVED: Mobile-friendly Service Map */}
         <section>
-          <ServiceMap />
+          <ServiceMapMobile />
         </section>
       </div>
     </div>

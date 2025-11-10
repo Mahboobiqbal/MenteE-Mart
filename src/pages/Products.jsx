@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import supabase from "../utils/supabase";
 import ProductCard from "../components/ProductCard";
+import QuickViewModal from "../components/QuickViewModal";
+import AdvancedFilters from "../components/AdvancedFilters";
 
 const emerald = "#008060";
 const yellow = "#FFD700";
@@ -17,15 +19,18 @@ const Products = () => {
   const [priceRange, setPriceRange] = useState([0, 50000]);
   const [sortBy, setSortBy] = useState("name");
   const [currentPage, setCurrentPage] = useState(1);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [viewMode, setViewMode] = useState("grid"); // grid or list
   const ITEMS_PER_PAGE = 15;
 
   const categories = useMemo(
     () => [
-      { id: "all", name: "All Products", icon: "🛍️" },
-      { id: "shawal_men", name: "Shawals — Men's", icon: "🧣" },
-      { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
-      { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
-      { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
+      "All Products",
+      "Shawals — Men's",
+      "Shawals — Women's",
+      "Peshawar Chappals",
+      "Citrale Caps",
     ],
     []
   );
@@ -50,7 +55,18 @@ const Products = () => {
     fetchProducts();
   }, []);
 
-  // Filtering, sorting
+  // Quick View handlers
+  const handleQuickView = (product) => {
+    setQuickViewProduct(product);
+    setShowQuickView(true);
+  };
+
+  const closeQuickView = () => {
+    setShowQuickView(false);
+    setQuickViewProduct(null);
+  };
+
+  // Enhanced filtering and sorting
   useEffect(() => {
     let filtered = [...products];
 
@@ -64,16 +80,14 @@ const Products = () => {
       );
     }
 
-    if (selectedCategory !== "all") {
-      const selectedCatObj = categories.find((c) => c.id === selectedCategory);
-      if (selectedCatObj) {
-        const cat = selectedCatObj.name.toLowerCase();
-        filtered = filtered.filter(
-          (p) =>
-            (p.category || "").toLowerCase() === cat ||
-            (p.category || "").toLowerCase().includes(cat)
-        );
-      }
+    if (selectedCategory !== "all" && selectedCategory !== "All Products") {
+      filtered = filtered.filter(
+        (p) =>
+          (p.category || "").toLowerCase() === selectedCategory.toLowerCase() ||
+          (p.category || "")
+            .toLowerCase()
+            .includes(selectedCategory.toLowerCase())
+      );
     }
 
     filtered = filtered.filter((p) => {
@@ -83,12 +97,18 @@ const Products = () => {
 
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case "price-low":
+        case "price_low":
           return (Number(a.price) || 0) - (Number(b.price) || 0);
-        case "price-high":
+        case "price_high":
           return (Number(b.price) || 0) - (Number(a.price) || 0);
+        case "name_desc":
+          return String(b.name || "").localeCompare(String(a.name || ""));
         case "name":
           return String(a.name || "").localeCompare(String(b.name || ""));
+        case "rating":
+          return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+        case "newest":
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
         default:
           return 0;
       }
