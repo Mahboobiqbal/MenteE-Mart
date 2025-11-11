@@ -189,17 +189,29 @@ const StoreProductManagement = () => {
         return;
       }
 
-      if (!editingProduct && selectedImages.length !== 3) {
-        alert("Please upload exactly 3 images for new products");
+      if (!editingProduct && selectedImages.length < 1) {
+        alert(
+          "Please upload at least 1 image for new products (1 required, up to 4 total)"
+        );
+        return;
+      }
+
+      if (!editingProduct && selectedImages.length > 4) {
+        alert("Maximum 4 images allowed (1 required + 3 optional)");
         return;
       }
 
       if (
         editingProduct &&
         selectedImages.length > 0 &&
-        selectedImages.length !== 3
+        selectedImages.length < 1
       ) {
-        alert("Please upload exactly 3 images when replacing existing ones");
+        alert("Please upload at least 1 image when replacing existing ones");
+        return;
+      }
+
+      if (editingProduct && selectedImages.length > 4) {
+        alert("Maximum 4 images allowed (1 required + 3 optional)");
         return;
       }
 
@@ -217,7 +229,7 @@ const StoreProductManagement = () => {
       setSaving(true);
 
       let uploadedImageUrls = null;
-      if (selectedImages.length === 3) {
+      if (selectedImages.length >= 1 && selectedImages.length <= 4) {
         uploadedImageUrls = await uploadImages();
       }
 
@@ -399,8 +411,12 @@ const StoreProductManagement = () => {
   };
 
   const uploadImages = async () => {
-    if (selectedImages.length !== 3) {
-      throw new Error("Please select exactly 3 images before uploading");
+    if (selectedImages.length < 1) {
+      throw new Error("Please select at least 1 image before uploading");
+    }
+
+    if (selectedImages.length > 4) {
+      throw new Error("Maximum 4 images allowed (1 required + 3 optional)");
     }
 
     setImageUploading(true);

@@ -23,6 +23,7 @@ const CheckoutForm = () => {
       stateProvince: "",
       postalCode: "",
       country: "Pakistan",
+      areaId: "",
     },
     orderNotes: "",
   });
@@ -54,6 +55,7 @@ const CheckoutForm = () => {
         orderNotes: orderData.orderNotes,
         totalAmount: totalPrice,
         totalItems,
+        areaId: orderData.customer.areaId,
       });
 
       // Clear cart and redirect to payment confirmation
@@ -235,7 +237,7 @@ const CheckoutForm = () => {
 
           {/* Order Summary Sidebar */}
           <div className="lg:col-span-1">
-            <CartSummary />
+            <CartSummary areaId={orderData.customer.areaId} />
           </div>
         </div>
       </div>

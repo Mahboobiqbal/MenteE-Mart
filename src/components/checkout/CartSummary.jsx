@@ -1,9 +1,38 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "../../hooks/useCart";
 import { ShoppingBag, Package, Truck, Shield } from "lucide-react";
+import supabase from "../../utils/supabase";
 
-const CartSummary = () => {
+const CartSummary = ({ areaId }) => {
   const { items, totalItems, totalPrice } = useCart();
+  const [shippingCost, setShippingCost] = useState(0);
+  const [estimatedDelivery, setEstimatedDelivery] = useState("2-5 business days");
+  
+  useEffect(() => {
+    if (areaId) {
+      fetchShippingArea(areaId);
+    } else {
+      setShippingCost(0);
+      setEstimatedDelivery("2-5 business days");
+    }
+  }, [areaId]);
+  
+  const fetchShippingArea = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("shipping_cost, estimated_delivery_days")
+        .eq("id", id)
+        .single();
+        
+      if (data) {
+        setShippingCost(data.shipping_cost);
+        setEstimatedDelivery(`${data.estimated_delivery_days} business days`);
+      }
+    } catch (error) {
+      console.error("Error fetching shipping area:", error);
+    }
+  };
 
   const formatPrice = (price) => {
     return `₨${Number(price).toLocaleString()}`;
@@ -62,7 +91,9 @@ const CartSummary = () => {
 
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Shipping</span>
-          <span className="text-green-600 font-medium">Free</span>
+          <span className="text-gray-900 font-medium">
+            {shippingCost > 0 ? formatPrice(shippingCost) : "Free"}
+          </span>
         </div>
 
         <div className="flex justify-between text-sm">
@@ -73,7 +104,7 @@ const CartSummary = () => {
         <div className="border-t border-gray-200 pt-3">
           <div className="flex justify-between text-lg font-semibold">
             <span>Total</span>
-            <span className="text-emerald-600">{formatPrice(totalPrice)}</span>
+            <span className="text-emerald-600">{formatPrice(totalPrice + shippingCost)}</span>
           </div>
         </div>
       </div>
@@ -87,9 +118,9 @@ const CartSummary = () => {
               Delivery Information
             </h4>
             <p className="text-xs text-emerald-700 mt-1">
-              • Free delivery across Pakistan
+              • Delivery across Pakistan
               <br />
-              • Estimated delivery: 2-5 business days
+              • Estimated delivery: {estimatedDelivery}
               <br />• Cash on Delivery available in major cities
             </p>
           </div>

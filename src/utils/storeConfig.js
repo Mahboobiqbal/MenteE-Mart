@@ -168,8 +168,10 @@ export const getStoreWhatsAppUrl = (storeName, order = null) => {
   if (order) {
     message += `📦 Order: ${order.order_number}\n`;
     message += `💰 Total: ₨${Number(order.total_amount).toLocaleString()}\n`;
+    message += `💳 Payment: ${order.payment_status || "pending"}\n`;
     message += `👤 Customer: ${order.customer_first_name} ${order.customer_last_name}\n`;
     message += `📞 Phone: ${order.customer_phone}\n`;
+    message += `📧 Email: ${order.customer_email}\n`;
     message += `📍 Address: ${order.shipping_address}\n`;
 
     if (order.order_notes) {

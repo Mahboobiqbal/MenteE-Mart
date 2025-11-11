@@ -196,8 +196,12 @@ const AddProduct = () => {
   };
 
   const uploadImages = async () => {
-    if (selectedImages.length < 3) {
-      throw new Error("Please select exactly 3 images before uploading");
+    if (selectedImages.length < 1) {
+      throw new Error("Please select at least 1 image before uploading");
+    }
+
+    if (selectedImages.length > 4) {
+      throw new Error("Maximum 4 images allowed (1 required + 3 optional)");
     }
 
     setImageUploading(true);
@@ -353,8 +357,15 @@ const AddProduct = () => {
         return;
       }
     }
-    if (selectedImages.length < 3) {
-      alert("Please select exactly 3 product images");
+    if (selectedImages.length < 1) {
+      alert(
+        "Please select at least 1 product image (1 required, up to 4 total)"
+      );
+      return;
+    }
+
+    if (selectedImages.length > 4) {
+      alert("Maximum 4 images allowed (1 required + 3 optional)");
       return;
     }
 

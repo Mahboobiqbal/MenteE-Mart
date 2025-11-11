@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { User, Mail, Phone, MapPin } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, Mail, Phone, MapPin, Truck } from "lucide-react";
+import supabase from "../../utils/supabase";
 
 const CustomerForm = ({ onSubmit, initialData = {} }) => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,60 @@ const CustomerForm = ({ onSubmit, initialData = {} }) => {
     stateProvince: initialData.stateProvince || "",
     postalCode: initialData.postalCode || "",
     country: initialData.country || "Pakistan",
+    areaId: initialData.areaId || "",
   });
+  
+  const [areas, setAreas] = useState([]);
+  const [selectedArea, setSelectedArea] = useState(null);
+  
+  useEffect(() => {
+    fetchAreas();
+    if (initialData.areaId) {
+      fetchArea(initialData.areaId);
+    }
+  }, [initialData.areaId]);
+  
+  const fetchAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) throw error;
+      setAreas(data || []);
+    } catch (error) {
+      console.error("Error fetching shipping areas:", error);
+    }
+  };
+  
+  const fetchArea = async (areaId) => {
+    try {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("*")
+        .eq("id", areaId)
+        .single();
+      
+      if (error) throw error;
+      setSelectedArea(data);
+    } catch (error) {
+      console.error("Error fetching shipping area:", error);
+    }
+  };
+  
+  const handleAreaChange = (e) => {
+    const areaId = e.target.value;
+    setFormData({ ...formData, areaId });
+    
+    if (areaId) {
+      const area = areas.find(a => a.id === areaId);
+      setSelectedArea(area);
+    } else {
+      setSelectedArea(null);
+    }
+  };
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,6 +147,7 @@ const CustomerForm = ({ onSubmit, initialData = {} }) => {
     if (!formData.city.trim()) newErrors.city = "City is required";
     if (!formData.stateProvince.trim())
       newErrors.stateProvince = "Province/Region is required";
+    if (!formData.areaId) newErrors.areaId = "Shipping area is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -316,6 +371,38 @@ const CustomerForm = ({ onSubmit, initialData = {} }) => {
             placeholder="Postal code"
           />
         </div>
+      </div>
+
+      {/* Shipping Area */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          <Truck className="w-4 h-4 inline mr-2" />
+          Shipping Area *
+        </label>
+        <select
+          name="areaId"
+          value={formData.areaId}
+          onChange={handleAreaChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+            errors.areaId ? "border-red-300" : "border-gray-300"
+          }`}
+        >
+          <option value="">Select Shipping Area</option>
+          {areas.map((area) => (
+            <option key={area.id} value={area.id}>
+              {area.name} - ₨{area.shipping_cost.toLocaleString()} ({area.estimated_delivery_days} days)
+            </option>
+          ))}
+        </select>
+        {errors.areaId && (
+          <p className="text-red-500 text-sm mt-1">{errors.areaId}</p>
+        )}
+        {selectedArea && (
+          <div className="mt-2 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+            <p>Shipping Cost: <span className="font-semibold">₨{selectedArea.shipping_cost.toLocaleString()}</span></p>
+            <p>Estimated Delivery: <span className="font-semibold">{selectedArea.estimated_delivery_days} days</span></p>
+          </div>
+        )}
       </div>
 
       {/* Submit Button */}

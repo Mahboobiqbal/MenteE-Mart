@@ -1,4 +1,5 @@
 import supabase from "./supabase";
+import { getStoreConfig } from "./storeConfig";
 
 export const createOrder = async (orderData) => {
   try {
@@ -6,34 +7,222 @@ export const createOrder = async (orderData) => {
     const customer = await createOrGetCustomer(orderData.customer);
 
     // 2. Generate unique order number
-    const orderNumber = await generateOrderNumber();
+    let orderNumber = await generateOrderNumber();
 
-    // 3. Create order
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        order_number: orderNumber,
-        customer_id: customer.id,
-        status: "pending",
-        subtotal: orderData.totalAmount,
-        tax_amount: 0, // Tax is included in price
-        shipping_cost: 0, // Free shipping
-        total_amount: orderData.totalAmount,
-        currency: "PKR",
-        customer_email: orderData.customer.email,
-        customer_phone: orderData.customer.phone,
-        customer_first_name: orderData.customer.firstName,
-        customer_last_name: orderData.customer.lastName,
-        shipping_address: formatAddress(orderData.customer),
-        order_notes: orderData.orderNotes || null,
-        payment_method: "easypaisa",
-        payment_status: "pending",
-      })
-      .select()
-      .single();
+    // 3. Determine store_id from the first item (assuming all items are from the same store)
+    let storeId = orderData.items[0]?.store_id;
+
+    // If store_id is not available in the cart item, try to fetch it from the database
+    if (!storeId && orderData.items[0]?.id) {
+      try {
+        const { data: product } = await supabase
+          .from("products")
+          .select("store_id")
+          .eq("id", orderData.items[0].id)
+          .single();
+        storeId = product?.store_id;
+      } catch (error) {
+        console.warn("Could not fetch store_id from database:", error);
+      }
+    }
+
+    if (!storeId) {
+      // Try to get the first active store as fallback
+      try {
+        const { data: stores } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("is_active", true)
+          .limit(1);
+        if (stores && stores.length > 0) {
+          storeId = stores[0].id;
+        }
+      } catch (error) {
+        console.warn("Could not fetch default store:", error);
+      }
+    }
+
+    // Final fallback: use a default store ID if all else fails
+    if (!storeId) {
+      console.warn("No store ID found, using default store ID");
+      storeId = "default-store-id"; // Use a default store ID
+    }
+
+    // Log the final store_id for debugging
+    console.log("Using store_id:", storeId);
+
+    // Validate that all items are from the same store
+    for (const item of orderData.items) {
+      const itemStoreId = item.store_id;
+      if (itemStoreId && itemStoreId !== storeId) {
+        throw new Error(
+          "Cannot create order: all items must be from the same store"
+        );
+      }
+    }
+
+    // Get store configuration for commission rate
+    const storeName = orderData.items[0]?.store || "MenteE";
+    let commissionRate = 5.0; // Default commission rate
+    let commissionAmount = 0;
+
+    // Get shipping area and cost
+    let shippingCost = 0;
+    if (orderData.areaId) {
+      try {
+        const { data: area } = await supabase
+          .from("areas")
+          .select("shipping_cost")
+          .eq("id", orderData.areaId)
+          .single();
+
+        if (area) {
+          shippingCost = area.shipping_cost;
+          console.log("Shipping cost from area:", shippingCost);
+        }
+      } catch (error) {
+        console.error("Error fetching shipping area:", error);
+      }
+    }
+
+    // Calculate commission based on subtotal only (excluding shipping)
+    commissionAmount =
+      Number(orderData.totalAmount || 0) * (commissionRate / 100);
+
+    // Calculate total amount including shipping
+    const totalAmountWithShipping =
+      Number(orderData.totalAmount || 0) + shippingCost;
+
+    // Calculate commission based on subtotal (excluding shipping)
+    commissionAmount =
+      Number(orderData.totalAmount || 0) * (commissionRate / 100);
+
+    try {
+      const storeConfig = await getStoreConfig(storeName);
+      commissionRate = storeConfig.commission_rate || 5.0;
+    } catch (error) {
+      console.error(
+        "Error getting store config, using default commission rate:",
+        error
+      );
+    }
+
+    // Calculate commission based on subtotal only (excluding shipping)
+    commissionAmount =
+      Number(orderData.totalAmount || 0) * (commissionRate / 100);
+
+    // Validate commission values before creating order
+    console.log("Commission values before order creation:", {
+      commissionRate,
+      commissionAmount,
+      totalAmount: orderData.totalAmount,
+    });
+
+    // Ensure values are not null or NaN
+    if (commissionRate === null || isNaN(commissionRate)) {
+      commissionRate = 5.0; // Default fallback
+    }
+
+    if (commissionAmount === null || isNaN(commissionAmount)) {
+      commissionAmount = 0; // Default fallback
+    }
+
+    // 3. Create order with retry mechanism for order number conflicts
+    let order = null;
+    let orderError = null;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (!order && retryCount < maxRetries) {
+      try {
+        const result = await supabase
+          .from("orders")
+          .insert({
+            order_number: orderNumber,
+            customer_id: customer.id,
+            store_id: storeId,
+            store_name: storeName,
+            commission_rate: commissionRate,
+            commission_amount: commissionAmount,
+            store_commission_rate: commissionRate,
+            store_commission_amount: commissionAmount,
+            commission_status: "pending",
+            status: "pending",
+            subtotal: orderData.totalAmount,
+            tax_amount: 0, // Tax is included in price
+            shipping_cost: shippingCost,
+            area_id: orderData.areaId,
+            net_amount: totalAmountWithShipping, // Net amount includes shipping
+            total_amount: totalAmountWithShipping, // Total amount includes shipping
+            currency: "PKR",
+            customer_email: orderData.customer.email,
+            customer_phone: orderData.customer.phone,
+            customer_first_name: orderData.customer.firstName,
+            customer_last_name: orderData.customer.lastName,
+            shipping_address: formatAddress(orderData.customer),
+            order_notes: orderData.orderNotes || null,
+            payment_method: "easypaisa",
+            payment_status: "pending",
+          })
+          .select()
+          .single();
+
+        order = result.data;
+        orderError = result.error;
+      } catch (error) {
+        console.error("Order creation attempt failed:", error);
+        orderError = error;
+      }
+
+      // If there's a conflict with order number, generate a new one and retry
+      const isConflictError = (err) => {
+        if (!err) return false;
+        // Check for Supabase unique constraint violation
+        if (err.code === "23505") return true;
+        // Check for HTTP 409 Conflict
+        if (err.status === 409) return true;
+        // Check error message
+        const message = (err.message || "").toLowerCase();
+        if (
+          message.includes("unique constraint") ||
+          message.includes("duplicate")
+        )
+          return true;
+        return false;
+      };
+
+      if (orderError && isConflictError(orderError)) {
+        if (retryCount < maxRetries) {
+          console.log(
+            `Order number conflict, retrying (${retryCount + 1}/${maxRetries})`
+          );
+          console.log("Previous order number:", orderNumber);
+          retryCount++;
+
+          // Generate a genuinely new order number
+          const newOrderNumber = await generateOrderNumber();
+          orderNumber = newOrderNumber;
+          console.log("New order number:", orderNumber);
+
+          // Reset error for next iteration
+          orderError = null;
+          // Continue to next iteration of while loop
+        } else {
+          // Max retries exceeded, break out
+          console.error("Max retries exceeded for order number conflicts");
+          break;
+        }
+      } else {
+        // If it's a different error or no error, break out of the loop
+        break;
+      }
+    }
 
     if (orderError) {
-      throw new Error(`Failed to create order: ${orderError.message}`);
+      console.error("Order creation error:", orderError);
+      throw new Error(
+        `Failed to create order: ${orderError.message || "Unknown error"}`
+      );
     }
 
     // 4. Create order items
@@ -86,11 +275,18 @@ export const createOrder = async (orderData) => {
 export const createOrGetCustomer = async (customerData) => {
   try {
     // First, try to find existing customer by email
-    const { data: existingCustomer, error: findError } = await supabase
+    // Use .maybeSingle() instead of .single() to avoid error when no customer is found
+    const { data: existingCustomer, error: fetchError } = await supabase
       .from("customers")
       .select("*")
       .eq("email", customerData.email)
-      .single();
+      .maybeSingle();
+
+    // Handle error if any during fetch
+    if (fetchError) {
+      console.error("Error fetching customer:", fetchError);
+      throw fetchError;
+    }
 
     if (existingCustomer) {
       // Update existing customer with new information
@@ -119,22 +315,29 @@ export const createOrGetCustomer = async (customerData) => {
 
       return updatedCustomer;
     } else {
-      // Create new customer
+      // Create new customer using upsert to avoid conflicts
       const { data: newCustomer, error: createError } = await supabase
         .from("customers")
-        .insert({
-          email: customerData.email,
-          first_name: customerData.firstName,
-          last_name: customerData.lastName,
-          phone: customerData.phone,
-          alternate_phone: customerData.alternatePhone || null,
-          address_line1: customerData.addressLine1,
-          address_line2: customerData.addressLine2 || null,
-          city: customerData.city,
-          state_province: customerData.stateProvince,
-          postal_code: customerData.postalCode || null,
-          country: customerData.country,
-        })
+        .upsert(
+          {
+            email: customerData.email,
+            first_name: customerData.firstName,
+            last_name: customerData.lastName,
+            phone: customerData.phone,
+            alternate_phone: customerData.alternatePhone || null,
+            address_line1: customerData.addressLine1,
+            address_line2: customerData.addressLine2 || null,
+            city: customerData.city,
+            state_province: customerData.stateProvince,
+            postal_code: customerData.postalCode || null,
+            country: customerData.country,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "email",
+            ignoreDuplicates: false,
+          }
+        )
         .select()
         .single();
 
@@ -152,27 +355,49 @@ export const createOrGetCustomer = async (customerData) => {
 
 export const generateOrderNumber = async () => {
   try {
-    // Use the database function to generate order number
-    const { data, error } = await supabase.rpc("generate_order_number");
+    // Skip the RPC function and use client-side generation for better control
+    // Generate a truly unique order number each time
+    const timestamp = Date.now();
+    const milliseconds = timestamp % 1000; // Last 3 digits of milliseconds
+    const randomPart1 = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, "0");
+    const randomPart2 = Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, "0");
+    const orderNumber = `ORD${timestamp
+      .toString()
+      .slice(-8)}${randomPart1}${randomPart2}${milliseconds}`;
 
-    if (error) {
-      // Fallback to client-side generation
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0");
-      return `ORD${timestamp.toString().slice(-6)}${random}`;
+    console.log("Generated order number:", orderNumber);
+
+    // Double-check if the order number already exists in the database
+    try {
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("order_number", orderNumber)
+        .limit(1);
+
+      if (existingOrder && existingOrder.length > 0) {
+        console.log("Order number collision detected, generating new one");
+        // If collision, recursively generate a new one after a tiny delay
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return generateOrderNumber();
+      }
+    } catch (error) {
+      console.warn("Could not check for order number collision:", error);
+      // Continue anyway, the database unique constraint will catch duplicates
     }
 
-    return data;
+    return orderNumber;
   } catch (error) {
     console.error("Error generating order number:", error);
-    // Fallback to client-side generation
+
+    // Absolute last resort fallback - use a completely different format
     const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0");
-    return `ORD${timestamp.toString().slice(-6)}${random}`;
+    const nanoTime = Math.random().toString(36).substring(2, 20);
+    return `O${timestamp}${nanoTime}`.substring(0, 30);
   }
 };
 
@@ -216,6 +441,10 @@ export const updateOrderStatus = async (orderId, status, adminNotes = null) => {
       updateData.shipped_at = new Date().toISOString();
     } else if (status === "delivered") {
       updateData.delivered_at = new Date().toISOString();
+    } else if (status === "cancelled") {
+      // Reset commission amounts for cancelled orders
+      updateData.commission_amount = 0;
+      updateData.store_commission_amount = 0;
     }
 
     if (adminNotes) {

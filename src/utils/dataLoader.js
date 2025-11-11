@@ -52,6 +52,12 @@ export const clearDataCache = () => {
   dataCache.clear();
 };
 
+// Force reload products (clear cache and reload)
+export const reloadProducts = async () => {
+  dataCache.delete("products");
+  return await getCachedData("products", loadProducts);
+};
+
 // Normalize product records fetched from Supabase
 export const normalizeProductRecord = (product) => {
   if (!product) return null;
@@ -94,6 +100,8 @@ export const normalizeProductRecord = (product) => {
     rating: product.rating !== undefined ? Number(product.rating) : 0,
     reviews: reviewCount,
     review: reviewList,
+    store: product.stores?.name || null,
+    store_id: product.stores?.id || product.store_id || "default-store-id",
   };
 };
 
@@ -102,7 +110,15 @@ export const loadProducts = async () => {
   try {
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select(
+        `
+        *,
+        stores!left(
+          id,
+          name
+        )
+      `
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;

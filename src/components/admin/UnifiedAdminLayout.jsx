@@ -18,8 +18,10 @@ import {
   Building2,
   PieChart,
   Tags,
+  Truck,
 } from "lucide-react";
 import { getAllStores } from "../../utils/storeManagement";
+import SidebarAnalyticsSummary from "./SidebarAnalyticsSummary";
 
 const UnifiedAdminLayout = ({ children, title = "Dashboard" }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,6 +63,12 @@ const UnifiedAdminLayout = ({ children, title = "Dashboard" }) => {
       current: location.pathname.startsWith("/admin/categories"),
     },
     {
+      name: "Shipping Areas",
+      href: "/admin/shipping-areas",
+      icon: Truck,
+      current: location.pathname.startsWith("/admin/shipping-areas"),
+    },
+    {
       name: "Products",
       href: "/admin/products",
       icon: Package,
@@ -77,6 +85,12 @@ const UnifiedAdminLayout = ({ children, title = "Dashboard" }) => {
       href: "/admin/analytics",
       icon: TrendingUp,
       current: location.pathname.startsWith("/admin/analytics"),
+    },
+    {
+      name: "Business Analytics",
+      href: "/admin/business-analytics",
+      icon: PieChart,
+      current: location.pathname.startsWith("/admin/business-analytics"),
     },
     {
       name: "Settings",
@@ -234,6 +248,9 @@ const UnifiedAdminLayout = ({ children, title = "Dashboard" }) => {
               )}
             </div>
           </div>
+
+          {/* Analytics Summary */}
+          <SidebarAnalyticsSummary />
         </nav>
 
         {/* Exit Button */}

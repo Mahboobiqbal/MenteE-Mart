@@ -141,7 +141,37 @@ const ProductCard = ({
 
     trackClick("whatsapp");
     const finalPrice = sale_price || price || 0;
-    const message = `Hello! I'm interested in *${name}* (₨${finalPrice.toLocaleString()})`;
+
+    // Build comprehensive product message with all details
+    let message = `*Product Inquiry*\n\n`;
+    message += `📦 *Product Name:* ${name}\n`;
+    message += `💰 *Price:* ₨${finalPrice.toLocaleString()}`;
+
+    if (sale_price && price && price > sale_price) {
+      const discount = Math.round(((price - sale_price) / price) * 100);
+      message += ` (Save ${discount}%)\n`;
+      message += `📌 *Original Price:* ₨${price.toLocaleString()}\n`;
+    } else {
+      message += `\n`;
+    }
+
+    if (category) {
+      message += `🏷️ *Category:* ${category}\n`;
+    }
+
+    if (description) {
+      message += `📝 *Description:* ${description.substring(0, 150)}${
+        description.length > 150 ? "..." : ""
+      }\n`;
+    }
+
+    message += `📊 *Stock Status:* ${
+      in_stock ? "✅ In Stock" : "❌ Out of Stock"
+    }\n`;
+    message += `⭐ *Rating:* ${rating}/5 (${reviews} reviews)\n`;
+
+    message += `\nPlease reply with quantity and preferred color/variant.`;
+
     const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "";
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
       message

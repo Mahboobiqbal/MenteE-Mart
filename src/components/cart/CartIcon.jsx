@@ -1,15 +1,17 @@
 import React from "react";
 import { ShoppingCart, X } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
+import { useNavigate } from "react-router-dom";
 
 const CartIcon = () => {
-  const { totalItems, isOpen, toggleCart, closeCart } = useCart();
+  const { totalItems } = useCart();
+  const navigate = useNavigate();
 
   return (
     <div className="relative">
       {/* Cart Button */}
       <button
-        onClick={toggleCart}
+        onClick={() => navigate("/cart")}
         className="relative p-2 text-gray-700 hover:text-emerald-600 transition-colors"
         aria-label={`Shopping cart with ${totalItems} items`}
       >
@@ -23,17 +25,7 @@ const CartIcon = () => {
         )}
       </button>
 
-      {/* Mobile Close Button (when cart is open) */}
-      {isOpen && (
-        <div className="md:hidden fixed top-4 right-4 z-50">
-          <button
-            onClick={closeCart}
-            className="p-2 bg-white rounded-full shadow-lg text-gray-700 hover:text-emerald-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-      )}
+
     </div>
   );
 };

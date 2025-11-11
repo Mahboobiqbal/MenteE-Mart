@@ -366,6 +366,13 @@ export const updateOrderStatus = async (orderId, status, adminNotes = null) => {
       updates.admin_notes = adminNotes;
     }
 
+    // Handle cancelled orders
+    if (status === "cancelled") {
+      // Reset commission amounts for cancelled orders
+      updates.commission_amount = 0;
+      updates.store_commission_amount = 0;
+    }
+
     const { data, error } = await supabase
       .from("orders")
       .update(updates)
@@ -561,23 +568,50 @@ export const getBusinessMetrics = async (dateRange = 30) => {
 // Get store WhatsApp URL
 export const getStoreWhatsAppUrl = (store, order = null) => {
   const whatsappNumber = store.whatsapp_number;
-  let message = "Hello! You have a new order:\n\n";
+  let message = "🎉 *NEW ORDER NOTIFICATION* 🎉\n\n";
 
   if (order) {
-    message += `📦 Order: ${order.order_number}\n`;
-    message += `💰 Total: ₨${Number(order.total_amount).toLocaleString()}\n`;
-    message += `👤 Customer: ${order.customer_first_name} ${order.customer_last_name}\n`;
+    message += `📦 *Order Number:* ${order.order_number}\n`;
+    message += `💰 *Total Amount:* ₨${Number(
+      order.total_amount
+    ).toLocaleString()}\n`;
+
+    // Add order items if available
+    if (
+      order.order_items &&
+      Array.isArray(order.order_items) &&
+      order.order_items.length > 0
+    ) {
+      message += `\n*� ORDER ITEMS:*\n`;
+      order.order_items.forEach((item, index) => {
+        message += `${index + 1}. ${item.product_name}\n`;
+        message += `   • Quantity: ${item.quantity}\n`;
+        message += `   • Unit Price: ₨${Number(
+          item.unit_price
+        ).toLocaleString()}\n`;
+        message += `   • Total: ₨${Number(
+          item.total_price
+        ).toLocaleString()}\n`;
+      });
+    }
+
+    message += `\n*👤 CUSTOMER DETAILS:*\n`;
+    message += `Name: ${order.customer_first_name} ${order.customer_last_name}\n`;
     message += `📞 Phone: ${order.customer_phone}\n`;
-    message += `📍 Address: ${order.shipping_address}\n`;
+    message += `� Email: ${order.customer_email}\n`;
+    message += `�📍 Address: ${order.shipping_address}\n`;
 
     if (order.order_notes) {
-      message += `📝 Notes: ${order.order_notes}\n`;
+      message += `\n📝 *Special Notes:* ${order.order_notes}\n`;
     }
+
+    message += `\n💳 *Payment Status:* ${order.payment_status}\n`;
+    message += `📊 *Order Status:* ${order.status}\n`;
   } else {
-    message += "Please check your store dashboard for new orders.";
+    message += "Please check your store dashboard for new orders.\n";
   }
 
-  message += "\n\nThank you!";
+  message += `\n---\nMenteE-Mart Order Management`;
 
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 };

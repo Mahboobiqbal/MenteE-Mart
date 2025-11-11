@@ -180,6 +180,7 @@ export function CartProvider({ children }) {
       image: product.image_url || product.image,
       category: product.category,
       store: product.store,
+      store_id: product.store_id,
       quantity,
     };
 

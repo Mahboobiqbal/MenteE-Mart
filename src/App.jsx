@@ -15,7 +15,7 @@ import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Wishlist from "./pages/Wishlist";
 import { CartProvider } from "./context/CartContext";
-import CartDrawer from "./components/cart/CartDrawer";
+import CartPage from "./pages/CartPage";
 import CheckoutForm from "./components/checkout/CheckoutForm";
 import PaymentConfirmation from "./pages/PaymentConfirmation";
 import EnhancedOrderTracking from "./pages/EnhancedOrderTracking";
@@ -25,6 +25,8 @@ import StoreManagement from "./components/admin/StoreManagement";
 import StoreProductManagement from "./components/admin/StoreProductManagement";
 import OrderManagement from "./components/admin/OrderManagement";
 import CategoryManagement from "./components/admin/CategoryManagement";
+import ShippingAreasManagement from "./components/admin/ShippingAreasManagement";
+import BusinessAnalytics from "./components/admin/BusinessAnalytics";
 import "./App.css";
 
 // Component to always render Navbar and Footer (no admin routes)
@@ -42,7 +44,6 @@ const App = () => {
   return (
     <CartProvider>
       <Router>
-        <CartDrawer />
         <Routes>
           <Route
             path="/"
@@ -115,6 +116,16 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/shipping-areas"
+            element={
+              <ProtectedRoute>
+                <UnifiedAdminLayout title="Shipping Areas Management">
+                  <ShippingAreasManagement />
+                </UnifiedAdminLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/admin/stores/:storeId/orders"
@@ -167,20 +178,18 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <UnifiedAdminLayout title="Analytics">
-                  <div className="p-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">
-                      Business Analytics
-                    </h1>
-                    <p className="text-gray-600 mb-4">
-                      Detailed reports and commission tracking coming soon.
-                    </p>
-                    <a
-                      href="/admin"
-                      className="text-emerald-600 hover:text-emerald-700 font-medium"
-                    >
-                      Back to Dashboard →
-                    </a>
-                  </div>
+                  <BusinessAnalytics />
+                </UnifiedAdminLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/business-analytics"
+            element={
+              <ProtectedRoute>
+                <UnifiedAdminLayout title="Business Analytics">
+                  <BusinessAnalytics />
                 </UnifiedAdminLayout>
               </ProtectedRoute>
             }
@@ -277,6 +286,14 @@ const App = () => {
             element={
               <Layout>
                 <Wishlist />
+              </Layout>
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <Layout>
+                <CartPage />
               </Layout>
             }
           />
