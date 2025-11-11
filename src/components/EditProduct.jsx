@@ -2,7 +2,23 @@ import React, { useState, useEffect } from "react";
 import supabase from "../utils/supabase";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchDescription } from "../utils/groq";
-import { getCachedData, loadCategories, loadStores } from "../utils/dataLoader";
+import { getAllCategories, getAllStores } from "../utils/storeManagement";
+import SALE_EVENTS from "../constants/saleEvents";
+import {
+  productSupportsColumn,
+  rememberProductColumnSupport,
+} from "../utils/productSchema";
+
+const BUCKET = "product-images";
+
+const slugify = (str = "") =>
+  str
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 
 const EditProduct = () => {
   const navigate = useNavigate();
@@ -19,37 +35,39 @@ const EditProduct = () => {
     salePrice: "",
     category: "",
     store: "", // NEW: Store field
-    imageUrl: "",
     saleType: "", // NEW
     saleStart: "",
     saleEnd: "",
     inStock: true,
     featured: false,
   });
+  const [existingImages, setExistingImages] = useState([]);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [saleSupport, setSaleSupport] = useState({
+    type: false,
+    start: false,
+    end: false,
+    checked: false,
+  });
 
-  // Load categories and stores from JSON files
+  // Load categories and stores directly from the database
   useEffect(() => {
     const loadData = async () => {
       try {
         const [categoriesData, storesData] = await Promise.all([
-          getCachedData("categories", loadCategories),
-          getCachedData("stores", loadStores),
+          getAllCategories(),
+          getAllStores(),
         ]);
-        setCategories(categoriesData.filter((cat) => cat.id !== "all")); // Remove "All Products"
-        setStores(storesData.filter((store) => store.id !== "all")); // Remove "All Stores"
+        setCategories(
+          categoriesData.filter((category) => category.id !== "all")
+        );
+        setStores(storesData.filter((store) => store.id !== "all"));
       } catch (error) {
         console.error("Error loading data:", error);
-        // Fallback to hardcoded data
-        setCategories([
-          { id: "shawal_men", name: "Shawals — Men's", icon: "👕" },
-          { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
-          { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
-          { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
-        ]);
-        setStores([
-          { id: "mentee", name: "MenteE" },
-          { id: "nainzaka", name: "Nainzaka" },
-        ]);
+        setCategories([]);
+        setStores([]);
       } finally {
         setDataLoading(false);
       }
@@ -57,29 +75,6 @@ const EditProduct = () => {
 
     loadData();
   }, []);
-
-  const SALES = [
-    { value: "", label: "No special sale" },
-    { value: "eid", label: "Eid Sale" },
-    { value: "eid_milad_un_nabi", label: "Eid Milad-un-Nabi Sale" },
-    { value: "ramadan", label: "Ramadan Sale" },
-    { value: "holi", label: "Holi Sale" },
-    { value: "diwali", label: "Diwali Sale" },
-    { value: "christmas", label: "Christmas Sale" },
-    { value: "new_year", label: "New Year Sale" },
-    { value: "valentines", label: "Valentine's Sale" },
-    { value: "mothers_day", label: "Mother's Day Sale" },
-    { value: "fathers_day", label: "Father's Day Sale" },
-    { value: "independence_day", label: "Independence Day Sale" },
-    { value: "black_friday", label: "Black Friday" },
-    { value: "cyber_monday", label: "Cyber Monday" },
-    { value: "clearance", label: "Clearance Sale" },
-    { value: "flash_sale", label: "Flash Sale" },
-    { value: "anniversary", label: "Anniversary Sale" },
-    { value: "back_to_school", label: "Back to School" },
-    { value: "store_opening", label: "Store Opening" },
-    { value: "special_offer", label: "Special Offer" },
-  ];
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -112,13 +107,21 @@ const EditProduct = () => {
           salePrice: data.sale_price != null ? String(data.sale_price) : "",
           category: data.category || "",
           store: data.store || "", // NEW: Store field
-          imageUrl: data.image_url || "",
           saleType: data.sale_type || "", // NEW
-          saleStart: data.sale_start || "",
-          saleEnd: data.sale_end || "",
+          saleStart: data.sale_start ? data.sale_start.slice(0, 10) : "",
+          saleEnd: data.sale_end ? data.sale_end.slice(0, 10) : "",
           inStock: data.in_stock !== false,
           featured: data.featured || false,
         });
+        const currentImages = [
+          data.image_url,
+          ...(Array.isArray(data.additional_images)
+            ? data.additional_images
+            : []),
+        ].filter(Boolean);
+        setExistingImages(currentImages);
+        setSelectedImages([]);
+        setImagePreviews([]);
       } catch (error) {
         console.error("Error fetching product:", error);
         alert("Error loading product data");
@@ -130,6 +133,40 @@ const EditProduct = () => {
     fetchProduct();
   }, [id, navigate]);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [typeSupported, startSupported, endSupported] = await Promise.all([
+          productSupportsColumn("sale_type"),
+          productSupportsColumn("sale_start"),
+          productSupportsColumn("sale_end"),
+        ]);
+
+        if (!active) return;
+
+        rememberProductColumnSupport("sale_type", typeSupported);
+        rememberProductColumnSupport("sale_start", startSupported);
+        rememberProductColumnSupport("sale_end", endSupported);
+
+        setSaleSupport({
+          type: typeSupported,
+          start: startSupported,
+          end: endSupported,
+          checked: true,
+        });
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to detect sale-related columns:", error);
+        setSaleSupport({ type: false, start: false, end: false, checked: true });
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -138,21 +175,205 @@ const EditProduct = () => {
     }));
   };
 
+  const handleImageChange = (event) => {
+    const files = Array.from(event.target.files || []);
+
+    if (files.length === 0) {
+      return;
+    }
+
+    if (files.length !== 3) {
+      alert("Please select exactly 3 images");
+      return;
+    }
+
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const invalidFiles = files.filter(
+      (file) => !validTypes.includes(file.type)
+    );
+    if (invalidFiles.length > 0) {
+      alert("Please select only image files (JPEG, PNG, WebP)");
+      return;
+    }
+
+    const largeFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
+    if (largeFiles.length > 0) {
+      alert("Each image must be under 5MB");
+      return;
+    }
+
+    setSelectedImages(files);
+
+    const previews = files.map(
+      (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target?.result);
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(previews).then(setImagePreviews);
+  };
+
+  const removeImage = (index) => {
+    const updatedFiles = selectedImages.filter((_, idx) => idx !== index);
+    const updatedPreviews = imagePreviews.filter((_, idx) => idx !== index);
+    setSelectedImages(updatedFiles);
+    setImagePreviews(updatedPreviews);
+  };
+
+  const uploadImages = async () => {
+    if (selectedImages.length !== 3) {
+      throw new Error("Please select exactly 3 images before uploading");
+    }
+
+    setImageUploading(true);
+    try {
+      const urls = [];
+      const base = slugify(formData.name || "product");
+
+      const sessionResp = await supabase.auth.getSession();
+      const token = sessionResp?.data?.session?.access_token;
+      const headers = { "Content-Type": "application/json" };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      } else if (
+        typeof window !== "undefined" &&
+        sessionStorage.getItem("admin_ok") === "1"
+      ) {
+        const adminPass = import.meta.env.VITE_ADMIN_PASSCODE;
+        if (!adminPass) {
+          throw new Error(
+            "Admin passcode is not configured (VITE_ADMIN_PASSCODE). Please configure it or sign in."
+          );
+        }
+        headers["x-admin-passcode"] = adminPass;
+      } else {
+        throw new Error("You must be signed in to upload images.");
+      }
+
+      for (let index = 0; index < selectedImages.length; index += 1) {
+        const file = selectedImages[index];
+        const extension = (
+          file.name.split(".").pop() ||
+          file.type.split("/")[1] ||
+          "jpg"
+        ).toLowerCase();
+        const timestamp = Date.now();
+        const path = `products/${base}/${timestamp}-${index}.${extension}`;
+
+        let uploadedUrl = null;
+
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const result = ev.target?.result || "";
+            resolve(result.split(",")[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        try {
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              fileName: `${base}-${timestamp}-${index}.${extension}`,
+              fileType: file.type,
+              base64,
+              path,
+            }),
+          });
+
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.warn(
+                "/api/upload not found. Falling back to client upload."
+              );
+            } else {
+              const json = await response.json().catch(() => ({}));
+              throw new Error(
+                json.error || `Upload failed (status ${response.status})`
+              );
+            }
+          } else {
+            const json = await response.json();
+            uploadedUrl = json.publicUrl;
+          }
+        } catch (err) {
+          console.warn("Server upload failed, attempting client upload:", err);
+        }
+
+        if (!uploadedUrl) {
+          const { error: uploadError } = await supabase.storage
+            .from(BUCKET)
+            .upload(path, file, { contentType: file.type, upsert: false });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const { data: publicData } = supabase.storage
+            .from(BUCKET)
+            .getPublicUrl(path);
+          uploadedUrl = publicData?.publicUrl;
+          if (!uploadedUrl) {
+            throw new Error("Failed to obtain public URL from Supabase upload");
+          }
+        }
+
+        urls.push(uploadedUrl);
+      }
+
+      return urls;
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (
       !formData.name ||
       !formData.price ||
       !formData.category ||
-      !formData.store ||
-      !formData.imageUrl
+      !formData.store
     ) {
       alert("Please fill in all required fields");
       return;
     }
 
+    if (!existingImages.length && selectedImages.length !== 3) {
+      alert("Please upload exactly 3 product images");
+      return;
+    }
+
+    if (selectedImages.length > 0 && selectedImages.length !== 3) {
+      alert("Please upload exactly 3 product images to replace the gallery");
+      return;
+    }
+
+    if (
+      saleSupport.start &&
+      saleSupport.end &&
+      formData.saleStart &&
+      formData.saleEnd &&
+      formData.saleStart > formData.saleEnd
+    ) {
+      alert("Sale end date must be after the start date");
+      return;
+    }
+
     setLoading(true);
     try {
+      let uploadedImageUrls = null;
+      if (selectedImages.length === 3) {
+        uploadedImageUrls = await uploadImages();
+      }
+
       const updates = {
         name: formData.name.trim(),
         description: formData.description,
@@ -160,14 +381,28 @@ const EditProduct = () => {
         sale_price: formData.salePrice ? parseFloat(formData.salePrice) : null,
         category: formData.category,
         store: formData.store, // NEW: Store field
-        image_url: formData.imageUrl,
         in_stock: !!formData.inStock,
         featured: !!formData.featured,
         updated_at: new Date().toISOString(),
-        sale_type: formData.saleType || null,
-        sale_start: formData.saleStart || null,
-        sale_end: formData.saleEnd || null,
       };
+
+      if (saleSupport.type) {
+        updates.sale_type = formData.saleType || null;
+      }
+      if (saleSupport.start) {
+        updates.sale_start = formData.saleStart || null;
+      }
+      if (saleSupport.end) {
+        updates.sale_end = formData.saleEnd || null;
+      }
+
+      if (uploadedImageUrls) {
+        updates.image_url = uploadedImageUrls[0];
+        updates.additional_images = uploadedImageUrls.slice(1);
+      } else if (existingImages.length) {
+        updates.image_url = existingImages[0];
+        updates.additional_images = existingImages.slice(1);
+      }
 
       const { error } = await supabase
         .from("products")
@@ -184,6 +419,30 @@ const EditProduct = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!saleSupport.checked) return;
+
+    setFormData((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      if (!saleSupport.type && prev.saleType) {
+        next.saleType = "";
+        changed = true;
+      }
+      if (!saleSupport.start && prev.saleStart) {
+        next.saleStart = "";
+        changed = true;
+      }
+      if (!saleSupport.end && prev.saleEnd) {
+        next.saleEnd = "";
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
+  }, [saleSupport.checked, saleSupport.type, saleSupport.start, saleSupport.end]);
 
   const generateDescription = async () => {
     const prompt = `
@@ -384,32 +643,73 @@ const EditProduct = () => {
                 />
               </div>
 
-              {/* Image URL */}
+              {/* Product images */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image URL *
+                  Product Images{" "}
+                  {selectedImages.length
+                    ? "(selected set will replace existing)"
+                    : ""}
                 </label>
                 <input
-                  type="url"
-                  name="imageUrl"
-                  value={formData.imageUrl}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                  required
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleImageChange}
+                  className="w-full"
+                  disabled={imageUploading || loading}
                 />
-                {formData.imageUrl && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Upload exactly 3 images (max 5MB each). Leave empty to keep
+                  the current gallery.
+                </p>
+
+                {existingImages.length > 0 && selectedImages.length === 0 && (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-700 mb-2">Image Preview:</p>
-                    <img
-                      src={formData.imageUrl}
-                      alt="Product preview"
-                      className="w-32 h-32 object-cover rounded-md border border-gray-300"
-                      onError={(e) => {
-                        e.target.src =
-                          "https://via.placeholder.com/128x128/F3F4F6/9CA3AF?text=Invalid+URL";
-                      }}
-                    />
+                    <p className="text-sm text-gray-700 mb-2">Current images</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {existingImages.map((url, index) => (
+                        <div
+                          key={`existing-${index}`}
+                          className="aspect-square rounded-lg overflow-hidden border border-gray-200"
+                        >
+                          <img
+                            src={url}
+                            alt={`Existing product image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {imagePreviews.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-700 mb-2">
+                      Selected images
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {imagePreviews.map((preview, index) => (
+                        <div
+                          key={`preview-${index}`}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200"
+                        >
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full px-2 py-1 text-xs text-red-600"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -449,14 +749,21 @@ const EditProduct = () => {
                   name="saleType"
                   value={formData.saleType}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={!saleSupport.type}
                 >
-                  {SALES.map((sale) => (
+                  {SALE_EVENTS.map((sale) => (
                     <option key={sale.value} value={sale.value}>
                       {sale.label}
                     </option>
                   ))}
                 </select>
+                {!saleSupport.type && saleSupport.checked && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Supabase does not expose a `sale_type` column. This selection is
+                    disabled until the column is added.
+                  </p>
+                )}
               </div>
 
               {/* Sale Start and End - NEW */}
@@ -470,8 +777,15 @@ const EditProduct = () => {
                     name="saleStart"
                     value={formData.saleStart}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    disabled={!saleSupport.start}
                   />
+                  {!saleSupport.start && saleSupport.checked && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Supabase does not expose a `sale_start` column. This field is
+                      disabled until the column is added.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -482,8 +796,15 @@ const EditProduct = () => {
                     name="saleEnd"
                     value={formData.saleEnd}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#660033] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    disabled={!saleSupport.end}
                   />
+                  {!saleSupport.end && saleSupport.checked && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Supabase does not expose a `sale_end` column. This field is
+                      disabled until the column is added.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -501,10 +822,12 @@ const EditProduct = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || imageUploading}
                 className="px-6 py-3 bg-[#660033] hover:bg-[#4A0025] text-white rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Updating Product..." : "Update Product"}
+                {loading || imageUploading
+                  ? "Updating Product..."
+                  : "Update Product"}
               </button>
             </div>
           </div>

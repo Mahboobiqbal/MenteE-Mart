@@ -1,11 +1,37 @@
 import React, { useState, useEffect } from "react";
 import supabase from "../utils/supabase";
 import { Link, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaSearch, FaEye, FaMousePointer, FaEdit, FaTrash, FaSignOutAlt, FaPlus } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaSearch,
+  FaEye,
+  FaMousePointer,
+  FaEdit,
+  FaTrash,
+  FaSignOutAlt,
+  FaPlus,
+  FaShoppingCart,
+} from "react-icons/fa";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import OrderManagement from "./admin/OrderManagement";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const emerald = "#008060";
 const yellow = "#FFD700";
@@ -93,7 +119,9 @@ const AdminDashboard = () => {
 
   const chartData = {
     labels: topProducts.map((p) =>
-      String(p.name || "").length > 15 ? `${String(p.name).slice(0, 15)}…` : String(p.name || "")
+      String(p.name || "").length > 15
+        ? `${String(p.name).slice(0, 15)}…`
+        : String(p.name || "")
     ),
     datasets: [
       {
@@ -149,13 +177,18 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center" style={{ background: "#f5f7f6" }}>
+      <div
+        className="min-h-screen flex justify-center items-center"
+        style={{ background: "#f5f7f6" }}
+      >
         <div className="text-center">
           <div
             className="animate-spin rounded-full h-16 w-16 border-4 mx-auto mb-4"
             style={{ borderColor: `${emerald}55`, borderTopColor: emerald }}
           />
-          <p className="text-lg font-medium" style={{ color: charcoal }}>Loading dashboard...</p>
+          <p className="text-lg font-medium" style={{ color: charcoal }}>
+            Loading dashboard...
+          </p>
         </div>
       </div>
     );
@@ -164,7 +197,14 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen" style={{ background: "#f5f7f6" }}>
       {/* Header / Navbar */}
-      <header className="sticky top-0 z-50" style={{ background: "#ffffffcc", backdropFilter: "saturate(180%) blur(6px)", borderBottom: "1px solid #e5e7eb" }}>
+      <header
+        className="sticky top-0 z-50"
+        style={{
+          background: "#ffffffcc",
+          backdropFilter: "saturate(180%) blur(6px)",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-6">
@@ -176,15 +216,27 @@ const AdminDashboard = () => {
               >
                 <FaArrowLeft className="w-4 h-4" />
                 <div>
-                  <div className="text-sm" style={{ color: charcoal }}>Store</div>
-                  <div className="text-lg font-semibold" style={{ color: emerald }}>Admin</div>
+                  <div className="text-sm" style={{ color: charcoal }}>
+                    Store
+                  </div>
+                  <div
+                    className="text-lg font-semibold"
+                    style={{ color: emerald }}
+                  >
+                    Admin
+                  </div>
                 </div>
               </button>
               <div>
                 <h1 className="text-2xl font-light" style={{ color: charcoal }}>
-                  Dashboard <span className="font-semibold" style={{ color: emerald }}>Manager</span>
+                  Dashboard{" "}
+                  <span className="font-semibold" style={{ color: emerald }}>
+                    Manager
+                  </span>
                 </h1>
-                <p className="text-sm" style={{ color: `${charcoal}99` }}>Manage products and analytics</p>
+                <p className="text-sm" style={{ color: `${charcoal}99` }}>
+                  Manage products and analytics
+                </p>
               </div>
             </div>
 
@@ -201,7 +253,11 @@ const AdminDashboard = () => {
               <button
                 onClick={handleExitAdmin}
                 className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
-                style={{ color: charcoal, background: "#ffffff", border: "1px solid #e5e7eb" }}
+                style={{
+                  color: charcoal,
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                }}
                 title="Exit admin mode"
               >
                 <FaSignOutAlt />
@@ -216,47 +272,94 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {[{
+          {[
+            {
               title: "Total Products",
               value: products.length.toLocaleString(),
               color: emerald,
               icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"
+                  />
                 </svg>
               ),
             },
             {
               title: "Total Views",
-              value: products.reduce((s, p) => s + (p.views || 0), 0).toLocaleString(),
+              value: products
+                .reduce((s, p) => s + (p.views || 0), 0)
+                .toLocaleString(),
               color: emerald,
               icon: <FaEye className="w-6 h-6" />,
             },
             {
               title: "Total Clicks",
-              value: products.reduce((s, p) => s + (p.clicks || 0), 0).toLocaleString(),
+              value: products
+                .reduce((s, p) => s + (p.clicks || 0), 0)
+                .toLocaleString(),
               color: yellow,
               icon: <FaMousePointer className="w-6 h-6" />,
             },
             {
               title: "Avg. Views",
-              value: products.length ? Math.round(products.reduce((s, p) => s + (p.views || 0), 0) / products.length).toLocaleString() : "0",
+              value: products.length
+                ? Math.round(
+                    products.reduce((s, p) => s + (p.views || 0), 0) /
+                      products.length
+                  ).toLocaleString()
+                : "0",
               color: charcoal,
               icon: (
-                <svg className="w-6 h-6" fill="none" stroke={charcoal} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke={charcoal}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"
+                  />
                 </svg>
               ),
             },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border p-6 hover:shadow transition" style={{ borderColor: "#e5e7eb" }}>
+            <div
+              key={idx}
+              className="bg-white rounded-2xl border p-6 hover:shadow transition"
+              style={{ borderColor: "#e5e7eb" }}
+            >
               <div className="flex items-center">
-                <div className="p-3 rounded-xl" style={{ background: `${stat.color}1A`, color: stat.color }}>
+                <div
+                  className="p-3 rounded-xl"
+                  style={{ background: `${stat.color}1A`, color: stat.color }}
+                >
                   {stat.icon}
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium" style={{ color: `${charcoal}99` }}>{stat.title}</p>
-                  <p className="text-3xl font-light" style={{ color: charcoal }}>{stat.value}</p>
+                  <p
+                    className="text-sm font-medium"
+                    style={{ color: `${charcoal}99` }}
+                  >
+                    {stat.title}
+                  </p>
+                  <p
+                    className="text-3xl font-light"
+                    style={{ color: charcoal }}
+                  >
+                    {stat.value}
+                  </p>
                 </div>
               </div>
             </div>
@@ -264,19 +367,42 @@ const AdminDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg border mb-6" style={{ borderColor: "#e5e7eb" }}>
+        <div
+          className="bg-white rounded-lg border mb-6"
+          style={{ borderColor: "#e5e7eb" }}
+        >
           <div className="border-b" style={{ borderColor: "#e5e7eb" }}>
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab("table")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "table" ? "border-[#008060]" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "table"
+                    ? "border-[#008060]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
                 style={{ color: activeTab === "table" ? emerald : charcoal }}
               >
                 Products Table
               </button>
               <button
+                onClick={() => setActiveTab("orders")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "orders"
+                    ? "border-[#008060]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+                style={{ color: activeTab === "orders" ? emerald : charcoal }}
+              >
+                <FaShoppingCart className="w-4 h-4 inline mr-2" />
+                Order Management
+              </button>
+              <button
                 onClick={() => setActiveTab("charts")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === "charts" ? "border-[#008060]" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "charts"
+                    ? "border-[#008060]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
                 style={{ color: activeTab === "charts" ? emerald : charcoal }}
               >
                 Analytics Chart
@@ -319,12 +445,24 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Products Table */}
-                <div className="bg-white rounded-2xl border shadow-sm overflow-x-auto" style={{ borderColor: "#e5e7eb" }}>
+                <div
+                  className="bg-white rounded-2xl border shadow-sm overflow-x-auto"
+                  style={{ borderColor: "#e5e7eb" }}
+                >
                   <table className="min-w-full divide-y divide-gray-200 table-fixed">
                     <thead className="bg-gray-50">
                       <tr>
-                        {["Product", "Price", "Analytics", "Status", "Actions"].map((header) => (
-                          <th key={header} className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {[
+                          "Product",
+                          "Price",
+                          "Analytics",
+                          "Status",
+                          "Actions",
+                        ].map((header) => (
+                          <th
+                            key={header}
+                            className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
                             {header}
                           </th>
                         ))}
@@ -333,24 +471,50 @@ const AdminDashboard = () => {
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {tableRows.length > 0 ? (
                         tableRows.map((row) => {
-                          const img = row.image_url || (Array.isArray(row.additional_images) && row.additional_images[0]) || "";
+                          const img =
+                            row.image_url ||
+                            (Array.isArray(row.additional_images) &&
+                              row.additional_images[0]) ||
+                            "";
                           return (
-                            <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="px-6 py-4 whitespace-nowrap align-top" style={{ verticalAlign: "top", maxWidth: 420 }}>
+                            <tr
+                              key={row.id}
+                              className="hover:bg-gray-50/50 transition-colors"
+                            >
+                              <td
+                                className="px-6 py-4 whitespace-nowrap align-top"
+                                style={{ verticalAlign: "top", maxWidth: 420 }}
+                              >
                                 <div className="flex items-start">
                                   <div className="flex-shrink-0 h-16 w-16">
                                     <img
                                       className="h-16 w-16 rounded-lg object-cover border"
                                       style={{ borderColor: "#e5e7eb" }}
-                                      src={img || "https://via.placeholder.com/64x64/F3F4F6/9CA3AF?text=No+Image"}
+                                      src={
+                                        img ||
+                                        "https://via.placeholder.com/64x64/F3F4F6/9CA3AF?text=No+Image"
+                                      }
                                       alt={row.name}
                                     />
                                   </div>
                                   <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900" style={{ maxWidth: 380 }}>
+                                    <div
+                                      className="text-sm font-medium text-gray-900"
+                                      style={{ maxWidth: 380 }}
+                                    >
                                       {row.name}
                                     </div>
-                                    <div className="text-sm text-gray-500 mt-1" style={{ maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                                    <div
+                                      className="text-sm text-gray-500 mt-1"
+                                      style={{
+                                        maxWidth: 380,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
+                                      }}
+                                    >
                                       {row.description || ""}
                                     </div>
                                   </div>
@@ -359,11 +523,15 @@ const AdminDashboard = () => {
 
                               <td className="px-6 py-4 whitespace-nowrap align-top">
                                 <div className="text-sm font-medium text-gray-900">
-                                  ₨{Number(row.price || row.sale_price || 0).toLocaleString()}
+                                  ₨
+                                  {Number(
+                                    row.price || row.sale_price || 0
+                                  ).toLocaleString()}
                                 </div>
                                 {row.sale_price ? (
                                   <div className="text-xs text-red-600">
-                                    Sale: ₨{Number(row.sale_price).toLocaleString()}
+                                    Sale: ₨
+                                    {Number(row.sale_price).toLocaleString()}
                                   </div>
                                 ) : null}
                               </td>
@@ -382,17 +550,31 @@ const AdminDashboard = () => {
                               </td>
 
                               <td className="px-6 py-4 whitespace-nowrap align-top">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${row.in_stock ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    row.in_stock
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
                                   {row.in_stock ? "In Stock" : "Out of Stock"}
                                 </span>
                               </td>
 
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium align-top">
                                 <div className="flex justify-end space-x-2">
-                                  <Link to={`/admin/edit-product/${row.id}`} className="text-blue-600 hover:text-blue-900 p-1 rounded" title="Edit Product">
+                                  <Link
+                                    to={`/admin/edit-product/${row.id}`}
+                                    className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                                    title="Edit Product"
+                                  >
                                     <FaEdit className="w-4 h-4" />
                                   </Link>
-                                  <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:text-red-900 p-1 rounded" title="Delete Product">
+                                  <button
+                                    onClick={() => handleDelete(row.id)}
+                                    className="text-red-600 hover:text-red-900 p-1 rounded"
+                                    title="Delete Product"
+                                  >
                                     <FaTrash className="w-4 h-4" />
                                   </button>
                                 </div>
@@ -402,8 +584,12 @@ const AdminDashboard = () => {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
-                            No products found. Try adjusting your search or add a new product.
+                          <td
+                            colSpan={5}
+                            className="px-6 py-12 text-center text-sm text-gray-500"
+                          >
+                            No products found. Try adjusting your search or add
+                            a new product.
                           </td>
                         </tr>
                       )}
@@ -411,13 +597,25 @@ const AdminDashboard = () => {
                   </table>
                 </div>
               </div>
+            ) : activeTab === "orders" ? (
+              <OrderManagement />
             ) : (
               <div>
                 {/* Chart Controls */}
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium" style={{ color: charcoal }}>Product Performance Analytics</h3>
+                  <h3
+                    className="text-lg font-medium"
+                    style={{ color: charcoal }}
+                  >
+                    Product Performance Analytics
+                  </h3>
                   <div className="flex items-center space-x-4">
-                    <label className="text-sm font-medium" style={{ color: charcoal }}>Show Top:</label>
+                    <label
+                      className="text-sm font-medium"
+                      style={{ color: charcoal }}
+                    >
+                      Show Top:
+                    </label>
                     <select
                       value={productLimit}
                       onChange={(e) => setProductLimit(Number(e.target.value))}
@@ -433,10 +631,19 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Chart */}
-                <div className="bg-white rounded-2xl border p-8 shadow-sm" style={{ borderColor: "#e5e7eb" }}>
+                <div
+                  className="bg-white rounded-2xl border p-8 shadow-sm"
+                  style={{ borderColor: "#e5e7eb" }}
+                >
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-light" style={{ color: charcoal }}>
-                      Product <span className="font-medium" style={{ color: emerald }}>Analytics</span>
+                    <h3
+                      className="text-2xl font-light"
+                      style={{ color: charcoal }}
+                    >
+                      Product{" "}
+                      <span className="font-medium" style={{ color: emerald }}>
+                        Analytics
+                      </span>
                     </h3>
                   </div>
 
@@ -447,24 +654,62 @@ const AdminDashboard = () => {
 
                 {/* Totals */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-lg p-4" style={{ background: `${emerald}1A`, border: `1px solid ${emerald}33` }}>
+                  <div
+                    className="rounded-lg p-4"
+                    style={{
+                      background: `${emerald}1A`,
+                      border: `1px solid ${emerald}33`,
+                    }}
+                  >
                     <div className="flex items-center">
-                      <div className="w-4 h-4 rounded mr-3" style={{ background: emerald }}></div>
+                      <div
+                        className="w-4 h-4 rounded mr-3"
+                        style={{ background: emerald }}
+                      ></div>
                       <div>
-                        <h4 className="text-sm font-medium" style={{ color: charcoal }}>Total Views</h4>
-                        <p className="text-2xl font-bold" style={{ color: emerald }}>
-                          {topProducts.reduce((sum, p) => sum + (p.views || 0), 0).toLocaleString()}
+                        <h4
+                          className="text-sm font-medium"
+                          style={{ color: charcoal }}
+                        >
+                          Total Views
+                        </h4>
+                        <p
+                          className="text-2xl font-bold"
+                          style={{ color: emerald }}
+                        >
+                          {topProducts
+                            .reduce((sum, p) => sum + (p.views || 0), 0)
+                            .toLocaleString()}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-lg p-4" style={{ background: `${yellow}1A`, border: `1px solid ${yellow}66` }}>
+                  <div
+                    className="rounded-lg p-4"
+                    style={{
+                      background: `${yellow}1A`,
+                      border: `1px solid ${yellow}66`,
+                    }}
+                  >
                     <div className="flex items-center">
-                      <div className="w-4 h-4 rounded mr-3" style={{ background: yellow }}></div>
+                      <div
+                        className="w-4 h-4 rounded mr-3"
+                        style={{ background: yellow }}
+                      ></div>
                       <div>
-                        <h4 className="text-sm font-medium" style={{ color: charcoal }}>Total Clicks</h4>
-                        <p className="text-2xl font-bold" style={{ color: charcoal }}>
-                          {topProducts.reduce((sum, p) => sum + (p.clicks || 0), 0).toLocaleString()}
+                        <h4
+                          className="text-sm font-medium"
+                          style={{ color: charcoal }}
+                        >
+                          Total Clicks
+                        </h4>
+                        <p
+                          className="text-2xl font-bold"
+                          style={{ color: charcoal }}
+                        >
+                          {topProducts
+                            .reduce((sum, p) => sum + (p.clicks || 0), 0)
+                            .toLocaleString()}
                         </p>
                       </div>
                     </div>

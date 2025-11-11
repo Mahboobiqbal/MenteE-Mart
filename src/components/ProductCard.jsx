@@ -8,9 +8,11 @@ import {
   Zap,
   Tag,
   Package,
+  Plus,
 } from "lucide-react";
 import supabase from "../utils/supabase";
 import StoreContact from "./StoreContact";
+import { useCart } from "../hooks/useCart";
 
 const ProductCard = ({
   product,
@@ -19,12 +21,14 @@ const ProductCard = ({
   loading = false,
 }) => {
   const navigate = useNavigate();
+  const { addToCart, isInCart, openCart } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [showAddAnimation, setShowAddAnimation] = useState(false);
   const cardRef = useRef(null);
 
   // Product data extraction with defaults
@@ -117,6 +121,17 @@ const ProductCard = ({
   const handleProductClick = () => {
     trackClick("view");
     navigate(`/product/${slug || id}`);
+  };
+
+  // Add to Cart handler
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+    if (!in_stock) return;
+
+    addToCart(product, 1);
+    setShowAddAnimation(true);
+    setTimeout(() => setShowAddAnimation(false), 1000);
+    openCart(); // Open cart drawer to show the added item
   };
 
   // WhatsApp order handler
@@ -381,21 +396,54 @@ const ProductCard = ({
         <div className="grid grid-cols-1 gap-3 pt-2">
           {store ? (
             /* Store-specific contact buttons */
-            <StoreContact storeName={store} productName={name} />
+            <>
+              <StoreContact storeName={store} productName={name} />
+              <button
+                onClick={handleAddToCart}
+                disabled={!in_stock}
+                className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
+                  in_stock
+                    ? `bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg ${
+                        showAddAnimation ? "animate-bounce" : ""
+                      }`
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                <Plus className="w-4 h-4 inline mr-2" />
+                {showAddAnimation ? "Added!" : "Add to Cart"}
+              </button>
+            </>
           ) : (
-            /* Fallback to general WhatsApp order */
-            <button
-              onClick={handleWhatsAppOrder}
-              disabled={!in_stock}
-              className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
-                in_stock
-                  ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              <ShoppingCart className="w-4 h-4 inline mr-2" />
-              Order Now
-            </button>
+            /* Fallback to general buttons */
+            <>
+              <button
+                onClick={handleAddToCart}
+                disabled={!in_stock}
+                className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
+                  in_stock
+                    ? `bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg ${
+                        showAddAnimation ? "animate-bounce" : ""
+                      }`
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                <Plus className="w-4 h-4 inline mr-2" />
+                {showAddAnimation ? "Added!" : "Add to Cart"}
+              </button>
+
+              <button
+                onClick={handleWhatsAppOrder}
+                disabled={!in_stock}
+                className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
+                  in_stock
+                    ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4 inline mr-2" />
+                Order Now
+              </button>
+            </>
           )}
 
           <button

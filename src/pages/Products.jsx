@@ -26,10 +26,10 @@ const Products = () => {
   const [sortBy, setSortBy] = useState("name");
   const [currentPage, setCurrentPage] = useState(1);
   const [categoryOptions, setCategoryOptions] = useState([
-    { id: "all", name: "All Products" },
+    { id: "all", name: "All Products", icon: "🛍️", matchValues: [] },
   ]);
   const [storeOptions, setStoreOptions] = useState([
-    { id: "all", name: "All Stores" },
+    { id: "all", name: "All Stores", matchValues: [] },
   ]);
   const [taxonomyLoading, setTaxonomyLoading] = useState(true);
 
@@ -48,35 +48,51 @@ const Products = () => {
 
         if (!mounted) return;
 
-        const seenCategories = new Set();
-        const categoryList = [];
-        [{ id: "all", name: "All Products" }, ...(categoryData || [])].forEach(
-          (category) => {
-            if (!category) return;
-            const id = category.id || (category.name || "").toLowerCase();
-            if (!id || seenCategories.has(id)) return;
-            seenCategories.add(id);
-            categoryList.push({
-              id,
-              name: category.name || id,
-            });
-          }
-        );
+        const categoryList = [
+          { id: "all", name: "All Products", icon: "🛍️", matchValues: [] },
+          ...(categoryData || [])
+            .filter((category) => category && category.id !== "all")
+            .map((category) => {
+              const id = category.slug || category.id || category.name;
+              const name = category.name || "Uncategorized";
+              const slug = category.slug || name;
+              const matchValues = [category.id, slug, name]
+                .filter(Boolean)
+                .map((value) => String(value).trim().toLowerCase());
 
-        const seenStores = new Set();
-        const storeList = [];
-        [{ id: "all", name: "All Stores" }, ...(storeData || [])].forEach(
-          (store) => {
-            if (!store) return;
-            const id = store.id || (store.name || "").toLowerCase();
-            if (!id || seenStores.has(id)) return;
-            seenStores.add(id);
-            storeList.push({
-              id,
-              name: store.name || id,
-            });
-          }
-        );
+              const uniqueMatchValues = Array.from(new Set(matchValues));
+
+              return {
+                id,
+                name,
+                icon: category.icon || category.emoji || "🛍️",
+                matchValues: uniqueMatchValues,
+              };
+            }),
+        ];
+
+        const storeList = [
+          { id: "all", name: "All Stores", matchValues: [] },
+          ...(storeData || [])
+            .filter((store) => store && store.id !== "all")
+            .map((store) => {
+              const id = store.id || store.slug || store.name;
+              const name = store.name || "Unknown Store";
+              const slug = store.slug || name;
+              const matchValues = [store.id, slug, name]
+                .filter(Boolean)
+                .map((value) => String(value).trim().toLowerCase());
+
+              const uniqueMatchValues = Array.from(new Set(matchValues));
+
+              return {
+                id,
+                name,
+                slug,
+                matchValues: uniqueMatchValues,
+              };
+            }),
+        ];
 
         setCategoryOptions(categoryList);
         setStoreOptions(storeList);
@@ -137,10 +153,11 @@ const Products = () => {
     );
 
     if (activeCategory && activeCategory.id !== "all") {
-      const categoryName = (activeCategory.name || "").toLowerCase();
-      filtered = filtered.filter(
-        (p) => (p.category || "").toLowerCase() === categoryName
-      );
+      const categoryMatchValues = activeCategory.matchValues || [];
+      filtered = filtered.filter((p) => {
+        const productCategory = (p.category || "").trim().toLowerCase();
+        return productCategory && categoryMatchValues.includes(productCategory);
+      });
     }
 
     const activeStore = storeOptions.find(
@@ -148,10 +165,18 @@ const Products = () => {
     );
 
     if (activeStore && activeStore.id !== "all") {
-      const storeName = (activeStore.name || "").toLowerCase();
-      filtered = filtered.filter(
-        (p) => (p.store || "").toLowerCase() === storeName
-      );
+      const storeMatchValues = activeStore.matchValues || [];
+      filtered = filtered.filter((p) => {
+        const productStoreName = (p.store || "").trim().toLowerCase();
+        const productStoreId = String(p.store_id || "")
+          .trim()
+          .toLowerCase();
+
+        return (
+          (productStoreId && storeMatchValues.includes(productStoreId)) ||
+          (productStoreName && storeMatchValues.includes(productStoreName))
+        );
+      });
     }
 
     filtered = filtered.filter((p) => {
@@ -343,6 +368,9 @@ const Products = () => {
                             }
                       }
                     >
+                      {category.icon && (
+                        <span className="mr-1">{category.icon}</span>
+                      )}
                       {category.name}
                     </button>
                   ))}

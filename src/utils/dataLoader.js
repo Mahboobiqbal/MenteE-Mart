@@ -115,74 +115,156 @@ export const loadProducts = async () => {
 
 // Load categories with live product counts
 export const loadCategories = async () => {
-  const data = await loadData("categories");
-  const categories = data?.categories || [];
-
-  let products = [];
   try {
-    products = await getCachedData("products", loadProducts);
+    const { data: categoriesData, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("sort_order");
+
+    if (error) throw error;
+
+    let products = [];
+    try {
+      products = await getCachedData("products", loadProducts);
+    } catch (productError) {
+      console.error("Error loading products for categories:", productError);
+    }
+
+    const categoryCounts = new Map();
+    products.forEach((product) => {
+      const rawValue = (product?.category || "").trim().toLowerCase();
+      if (!rawValue) return;
+      categoryCounts.set(rawValue, (categoryCounts.get(rawValue) || 0) + 1);
+    });
+
+    const totalProducts = products.length;
+
+    const categories = (categoriesData || []).map((category) => {
+      const slugKey = (category?.slug || "").trim().toLowerCase();
+      const nameKey = (category?.name || "").trim().toLowerCase();
+      const productCount =
+        categoryCounts.get(slugKey) ??
+        categoryCounts.get(nameKey) ??
+        categoryCounts.get(`${nameKey}-category`) ??
+        0;
+
+      return {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        icon: category.icon,
+        emoji: category.icon || getEmojiForCategory(category.name),
+        color: category.color || DEFAULT_CATEGORY_COLOR,
+        description: category.description || "",
+        image_url: category.image_url,
+        parent_id: category.parent_id,
+        sort_order: category.sort_order ?? 0,
+        is_active: category.is_active ?? true,
+        productCount,
+      };
+    });
+
+    categories.sort((a, b) => a.sort_order - b.sort_order);
+
+    return [
+      {
+        id: "all",
+        name: "All Products",
+        slug: "all",
+        emoji: "🛍️",
+        color: DEFAULT_CATEGORY_COLOR,
+        description: "Browse the complete catalog",
+        productCount: totalProducts,
+        is_active: true,
+        sort_order: -1,
+      },
+      ...categories,
+    ];
   } catch (error) {
-    console.error("Error loading products for categories:", error);
+    console.error("Error loading categories from database:", error);
+    return [];
   }
-
-  const categoryCounts = new Map();
-  products.forEach((product) => {
-    const key = (product?.category || "").trim().toLowerCase();
-    if (!key) return;
-    categoryCounts.set(key, (categoryCounts.get(key) || 0) + 1);
-  });
-
-  const totalProducts = products.length;
-
-  return categories.map((category) => {
-    const name = category.name || "";
-    const key = name.trim().toLowerCase();
-    const productCount =
-      category.id === "all" ? totalProducts : categoryCounts.get(key) || 0;
-
-    return {
-      id: category.id || key || "uncategorized",
-      name,
-      emoji: category.emoji || category.icon || getEmojiForCategory(name),
-      color: category.color || DEFAULT_CATEGORY_COLOR,
-      description: category.description || "",
-      productCount,
-    };
-  });
 };
 
 // Load stores enriched with product counts
 export const loadStores = async () => {
-  const data = await loadData("stores");
-  const stores = data?.stores || [];
-
-  let products = [];
   try {
-    products = await getCachedData("products", loadProducts);
-  } catch (error) {
-    console.error("Error loading products for stores:", error);
-  }
+    const { data: storesData, error } = await supabase
+      .from("stores")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
 
-  const storeCounts = new Map();
-  products.forEach((product) => {
-    const key = (product?.store || "").trim().toLowerCase();
-    if (!key) return;
-    storeCounts.set(key, (storeCounts.get(key) || 0) + 1);
-  });
+    if (error) throw error;
 
-  const totalProducts = products.length;
+    let products = [];
+    try {
+      products = await getCachedData("products", loadProducts);
+    } catch (productError) {
+      console.error("Error loading products for stores:", productError);
+    }
 
-  return stores.map((store) => {
-    const name = store.name || "";
-    const key = name.trim().toLowerCase();
-    const productCount =
-      store.id === "all" ? totalProducts : storeCounts.get(key) || 0;
+    const storeCountsById = new Map();
+    const storeCountsByKey = new Map();
 
-    return {
-      ...store,
-      productCount,
+    products.forEach((product) => {
+      const storeId = product?.store_id;
+      if (storeId) {
+        storeCountsById.set(storeId, (storeCountsById.get(storeId) || 0) + 1);
+      }
+
+      const storeNameValue = (product?.store || "").trim().toLowerCase();
+      if (storeNameValue) {
+        storeCountsByKey.set(
+          storeNameValue,
+          (storeCountsByKey.get(storeNameValue) || 0) + 1
+        );
+      }
+    });
+
+    const totalProducts = products.length;
+
+    const formatPhone = (value) => {
+      if (!value) return null;
+      const cleaned = value.replace(/\s+/g, "");
+      return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
     };
-  });
+
+    const stores = (storesData || []).map((store) => {
+      const nameKey = (store?.name || "").trim().toLowerCase();
+      const slugKey = (store?.slug || "").trim().toLowerCase();
+      const productCount =
+        storeCountsById.get(store.id) ??
+        storeCountsByKey.get(slugKey) ??
+        storeCountsByKey.get(nameKey) ??
+        0;
+
+      const phoneNumber =
+        store.whatsapp_number || store.owner_phone || store.store_phone;
+
+      return {
+        ...store,
+        productCount,
+        contact: {
+          phone: formatPhone(phoneNumber),
+          email: store.owner_email || store.store_contact_email || null,
+          whatsapp: formatPhone(store.whatsapp_number || phoneNumber),
+        },
+      };
+    });
+
+    return [
+      {
+        id: "all",
+        name: "All Stores",
+        productCount: totalProducts,
+      },
+      ...stores,
+    ];
+  } catch (error) {
+    console.error("Error loading stores from database:", error);
+    return [];
+  }
 };
 
 // Load analytics data (fallback to JSON until analytics are driven by Supabase)

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../utils/supabase";
 import { fetchDescription } from "../utils/groq";
-import { getCachedData, loadCategories, loadStores } from "../utils/dataLoader";
+import { getAllCategories, getAllStores } from "../utils/storeManagement";
+import SALE_EVENTS from "../constants/saleEvents";
 import {
   productSupportsColumn,
   rememberProductColumnSupport,
@@ -15,29 +16,6 @@ const charcoal = "#333333";
 
 // Storage bucket name in Supabase (create it first and make it public or add upload policy)
 const BUCKET = "product-images";
-
-const SALES = [
-  { value: "", label: "No special sale" },
-  { value: "eid", label: "Eid Sale" },
-  { value: "eid_milad_un_nabi", label: "Eid Milad-un-Nabi Sale" },
-  { value: "ramadan", label: "Ramadan Sale" },
-  { value: "holi", label: "Holi Sale" },
-  { value: "diwali", label: "Diwali Sale" },
-  { value: "christmas", label: "Christmas Sale" },
-  { value: "new_year", label: "New Year Sale" },
-  { value: "valentines", label: "Valentine's Sale" },
-  { value: "mothers_day", label: "Mother's Day Sale" },
-  { value: "fathers_day", label: "Father's Day Sale" },
-  { value: "independence_day", label: "Independence Day Sale" },
-  { value: "black_friday", label: "Black Friday" },
-  { value: "cyber_monday", label: "Cyber Monday" },
-  { value: "clearance", label: "Clearance Sale" },
-  { value: "flash_sale", label: "Flash Sale" },
-  { value: "anniversary", label: "Anniversary Sale" },
-  { value: "back_to_school", label: "Back to School" },
-  { value: "store_opening", label: "Store Opening" },
-  { value: "special_offer", label: "Special Offer" },
-];
 
 const slugify = (str = "") =>
   str
@@ -57,6 +35,12 @@ const AddProduct = () => {
   const [stores, setStores] = useState([]);
   const [storeSupported, setStoreSupported] = useState(true);
   const [storeSupportChecked, setStoreSupportChecked] = useState(false);
+  const [saleSupport, setSaleSupport] = useState({
+    type: false,
+    start: false,
+    end: false,
+    checked: false,
+  });
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -73,29 +57,21 @@ const AddProduct = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
 
-  // Load categories and stores from JSON files
+  // Load categories and stores directly from the database
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [categoriesData, storesData] = await Promise.all([
-          getCachedData("categories", loadCategories),
-          getCachedData("stores", loadStores),
+        const [dbCategories, dbStores] = await Promise.all([
+          getAllCategories(),
+          getAllStores(),
         ]);
-        setCategories(categoriesData.filter((cat) => cat.id !== "all")); // Remove "All Products"
-        setStores(storesData.filter((store) => store.id !== "all")); // Remove "All Stores"
+
+        setCategories(dbCategories.filter((category) => category.id !== "all"));
+        setStores(dbStores.filter((store) => store.id !== "all"));
       } catch (error) {
         console.error("Error loading data:", error);
-        // Fallback to hardcoded data
-        setCategories([
-          { id: "shawal_men", name: "Shawals — Men's", icon: "👕" },
-          { id: "shawal_women", name: "Shawals — Women's", icon: "🧣" },
-          { id: "peshawar_chappals", name: "Peshawar Chappals", icon: "👞" },
-          { id: "citrale_caps", name: "Citrale Caps", icon: "🧢" },
-        ]);
-        setStores([
-          { id: "mentee", name: "MenteE" },
-          { id: "nainzaka", name: "Nainzaka" },
-        ]);
+        setCategories([]);
+        setStores([]);
       } finally {
         setDataLoading(false);
       }
@@ -126,6 +102,40 @@ const AddProduct = () => {
       setFormData((prev) => (prev.store ? { ...prev, store: "" } : prev));
     }
   }, [storeSupported]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [typeSupported, startSupported, endSupported] = await Promise.all([
+          productSupportsColumn("sale_type"),
+          productSupportsColumn("sale_start"),
+          productSupportsColumn("sale_end"),
+        ]);
+
+        if (!active) return;
+
+        rememberProductColumnSupport("sale_type", typeSupported);
+        rememberProductColumnSupport("sale_start", startSupported);
+        rememberProductColumnSupport("sale_end", endSupported);
+
+        setSaleSupport({
+          type: typeSupported,
+          start: startSupported,
+          end: endSupported,
+          checked: true,
+        });
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to detect sale columns:", error);
+        setSaleSupport({ type: false, start: false, end: false, checked: true });
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -179,8 +189,8 @@ const AddProduct = () => {
   };
 
   const uploadImages = async () => {
-    if (selectedImages.length === 0) {
-      throw new Error("Please select at least one image");
+    if (selectedImages.length < 3) {
+      throw new Error("Please select exactly 3 images before uploading");
     }
 
     setImageUploading(true);
@@ -324,12 +334,20 @@ const AddProduct = () => {
       alert("Please fill in all required fields");
       return;
     }
-    if (storeSupported && !formData.store) {
-      alert("Please select a store for this product");
-      return;
+    if (storeSupported) {
+      if (!stores.length) {
+        alert(
+          "No stores are available yet. Please create a store before adding a product."
+        );
+        return;
+      }
+      if (!formData.store) {
+        alert("Please select a store for this product");
+        return;
+      }
     }
-    if (selectedImages.length === 0) {
-      alert("Please select at least one product image");
+    if (selectedImages.length < 3) {
+      alert("Please select exactly 3 product images");
       return;
     }
 
@@ -365,10 +383,17 @@ const AddProduct = () => {
         views_by_date: {},
         clicks_by_date: {},
         created_at: new Date().toISOString(),
-        sale_type: formData.saleType || null,
-        sale_start: formData.saleStart || null,
-        sale_end: formData.saleEnd || null,
       };
+
+      if (saleSupport.type) {
+        payload.sale_type = formData.saleType || null;
+      }
+      if (saleSupport.start) {
+        payload.sale_start = formData.saleStart || null;
+      }
+      if (saleSupport.end) {
+        payload.sale_end = formData.saleEnd || null;
+      }
 
       if (storeSupported && formData.store) {
         payload.store = formData.store;
@@ -606,7 +631,10 @@ const AddProduct = () => {
                 >
                   <option value="">Select a category</option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.name}>
+                    <option
+                      key={category.id || category.name}
+                      value={category.name}
+                    >
                       {category.icon} {category.name}
                     </option>
                   ))}
@@ -773,14 +801,26 @@ const AddProduct = () => {
                   value={formData.saleType}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 rounded-md outline-none transition bg-white"
-                  style={{ border: "1px solid #d1d5db", color: charcoal }}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    color: charcoal,
+                    backgroundColor: saleSupport.type ? white : "#f9fafb",
+                    cursor: saleSupport.type ? "pointer" : "not-allowed",
+                  }}
+                  disabled={!saleSupport.type}
                 >
-                  {SALES.map((s) => (
+                  {SALE_EVENTS.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
                     </option>
                   ))}
                 </select>
+                {!saleSupport.type && saleSupport.checked && (
+                  <p className="text-xs mt-1" style={{ color: `${charcoal}99` }}>
+                    Supabase does not expose a `sale_type` column, so the sale tag
+                    will be ignored until that column is added.
+                  </p>
+                )}
               </div>
 
               {/* Description */}

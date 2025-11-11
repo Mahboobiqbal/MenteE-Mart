@@ -38,3 +38,10 @@ dist-ssr
 # AdminLogin.jsx  
 # AdminGate.jsx
 # EditProduct.jsx
+
+FIXED_DATABASE_WITH_PROPER_ACCESS.sql
+
+FRESH_DATABASE_SETUP_GUIDE.md
+ADD_CATEGORY_TABLE.md
+
+TODO.md

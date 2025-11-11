@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import CartIcon from "./cart/CartIcon";
+import CartDrawer from "./cart/CartDrawer";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -49,9 +51,9 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
-            <span className="text-[#007a5a] font-bold text-xl">
-              <img src={logo} alt="MenteE Mart" />
-            </span>
+              <span className="text-[#007a5a] font-bold text-xl">
+                <img src={logo} alt="MenteE Mart" />
+              </span>
             </div>
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#ffd700] to-[#ffaa00]">
               MenteE Mart
@@ -90,8 +92,10 @@ const Navbar = () => {
             </form>
           </div>
 
-          {/* Wishlist & Mobile Menu Button */}
+          {/* Cart, Wishlist & Mobile Menu Button */}
           <div className="flex items-center space-x-4">
+            <CartIcon />
+
             <button
               onClick={() => navigate("/wishlist")}
               className="hidden md:flex items-center p-2 rounded-full hover:bg-[#006b51]/50 transition-colors relative"
@@ -208,6 +212,9 @@ const Navbar = () => {
             </div>
           </div>
         )}
+
+        {/* Cart Drawer */}
+        <CartDrawer />
       </div>
     </nav>
   );
