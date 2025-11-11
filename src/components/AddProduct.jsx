@@ -107,11 +107,13 @@ const AddProduct = () => {
     let active = true;
     (async () => {
       try {
-        const [typeSupported, startSupported, endSupported] = await Promise.all([
-          productSupportsColumn("sale_type"),
-          productSupportsColumn("sale_start"),
-          productSupportsColumn("sale_end"),
-        ]);
+        const [typeSupported, startSupported, endSupported] = await Promise.all(
+          [
+            productSupportsColumn("sale_type"),
+            productSupportsColumn("sale_start"),
+            productSupportsColumn("sale_end"),
+          ]
+        );
 
         if (!active) return;
 
@@ -128,7 +130,12 @@ const AddProduct = () => {
       } catch (error) {
         if (!active) return;
         console.error("Failed to detect sale columns:", error);
-        setSaleSupport({ type: false, start: false, end: false, checked: true });
+        setSaleSupport({
+          type: false,
+          start: false,
+          end: false,
+          checked: true,
+        });
       }
     })();
 
@@ -816,9 +823,12 @@ const AddProduct = () => {
                   ))}
                 </select>
                 {!saleSupport.type && saleSupport.checked && (
-                  <p className="text-xs mt-1" style={{ color: `${charcoal}99` }}>
-                    Supabase does not expose a `sale_type` column, so the sale tag
-                    will be ignored until that column is added.
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: `${charcoal}99` }}
+                  >
+                    Supabase does not expose a `sale_type` column, so the sale
+                    tag will be ignored until that column is added.
                   </p>
                 )}
               </div>

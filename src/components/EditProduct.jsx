@@ -137,11 +137,13 @@ const EditProduct = () => {
     let active = true;
     (async () => {
       try {
-        const [typeSupported, startSupported, endSupported] = await Promise.all([
-          productSupportsColumn("sale_type"),
-          productSupportsColumn("sale_start"),
-          productSupportsColumn("sale_end"),
-        ]);
+        const [typeSupported, startSupported, endSupported] = await Promise.all(
+          [
+            productSupportsColumn("sale_type"),
+            productSupportsColumn("sale_start"),
+            productSupportsColumn("sale_end"),
+          ]
+        );
 
         if (!active) return;
 
@@ -158,7 +160,12 @@ const EditProduct = () => {
       } catch (error) {
         if (!active) return;
         console.error("Failed to detect sale-related columns:", error);
-        setSaleSupport({ type: false, start: false, end: false, checked: true });
+        setSaleSupport({
+          type: false,
+          start: false,
+          end: false,
+          checked: true,
+        });
       }
     })();
 
@@ -442,7 +449,12 @@ const EditProduct = () => {
 
       return changed ? next : prev;
     });
-  }, [saleSupport.checked, saleSupport.type, saleSupport.start, saleSupport.end]);
+  }, [
+    saleSupport.checked,
+    saleSupport.type,
+    saleSupport.start,
+    saleSupport.end,
+  ]);
 
   const generateDescription = async () => {
     const prompt = `
@@ -760,8 +772,8 @@ const EditProduct = () => {
                 </select>
                 {!saleSupport.type && saleSupport.checked && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Supabase does not expose a `sale_type` column. This selection is
-                    disabled until the column is added.
+                    Supabase does not expose a `sale_type` column. This
+                    selection is disabled until the column is added.
                   </p>
                 )}
               </div>
@@ -782,8 +794,8 @@ const EditProduct = () => {
                   />
                   {!saleSupport.start && saleSupport.checked && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Supabase does not expose a `sale_start` column. This field is
-                      disabled until the column is added.
+                      Supabase does not expose a `sale_start` column. This field
+                      is disabled until the column is added.
                     </p>
                   )}
                 </div>
@@ -801,8 +813,8 @@ const EditProduct = () => {
                   />
                   {!saleSupport.end && saleSupport.checked && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Supabase does not expose a `sale_end` column. This field is
-                      disabled until the column is added.
+                      Supabase does not expose a `sale_end` column. This field
+                      is disabled until the column is added.
                     </p>
                   )}
                 </div>

@@ -115,11 +115,13 @@ const StoreProductManagement = () => {
     let active = true;
     (async () => {
       try {
-        const [typeSupported, startSupported, endSupported] = await Promise.all([
-          productSupportsColumn("sale_type"),
-          productSupportsColumn("sale_start"),
-          productSupportsColumn("sale_end"),
-        ]);
+        const [typeSupported, startSupported, endSupported] = await Promise.all(
+          [
+            productSupportsColumn("sale_type"),
+            productSupportsColumn("sale_start"),
+            productSupportsColumn("sale_end"),
+          ]
+        );
 
         if (!active) return;
 
@@ -136,7 +138,12 @@ const StoreProductManagement = () => {
       } catch (error) {
         if (!active) return;
         console.error("Failed to detect sale-related columns:", error);
-        setSaleSupport({ type: false, start: false, end: false, checked: true });
+        setSaleSupport({
+          type: false,
+          start: false,
+          end: false,
+          checked: true,
+        });
       }
     })();
 
@@ -167,7 +174,12 @@ const StoreProductManagement = () => {
 
       return changed ? next : prev;
     });
-  }, [saleSupport.checked, saleSupport.type, saleSupport.start, saleSupport.end]);
+  }, [
+    saleSupport.checked,
+    saleSupport.type,
+    saleSupport.start,
+    saleSupport.end,
+  ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,12 +204,12 @@ const StoreProductManagement = () => {
       }
 
       if (
-          saleSupport.start &&
-          saleSupport.end &&
-          formData.sale_start &&
-          formData.sale_end &&
-          formData.sale_start > formData.sale_end
-        ) {
+        saleSupport.start &&
+        saleSupport.end &&
+        formData.sale_start &&
+        formData.sale_end &&
+        formData.sale_start > formData.sale_end
+      ) {
         alert("Sale end date must be after the start date");
         return;
       }
@@ -710,7 +722,9 @@ const StoreProductManagement = () => {
                   }
                   disabled={!saleSupport.type}
                   className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
-                    saleSupport.type ? 'bg-white' : 'bg-gray-100 cursor-not-allowed'
+                    saleSupport.type
+                      ? "bg-white"
+                      : "bg-gray-100 cursor-not-allowed"
                   }`}
                 >
                   {SALE_EVENTS.map((sale) => (
@@ -737,8 +751,16 @@ const StoreProductManagement = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, sale_start: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    disabled={!saleSupport.start}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                      saleSupport.start ? "" : "bg-gray-100 cursor-not-allowed"
+                    }`}
                   />
+                  {!saleSupport.start && saleSupport.checked && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Sale start date column not available
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -750,8 +772,16 @@ const StoreProductManagement = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, sale_end: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    disabled={!saleSupport.end}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${
+                      saleSupport.end ? "" : "bg-gray-100 cursor-not-allowed"
+                    }`}
                   />
+                  {!saleSupport.end && saleSupport.checked && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Sale end date column not available
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

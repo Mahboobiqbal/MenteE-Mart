@@ -103,11 +103,13 @@ const AddProductContent = () => {
     let active = true;
     (async () => {
       try {
-        const [typeSupported, startSupported, endSupported] = await Promise.all([
-          productSupportsColumn("sale_type"),
-          productSupportsColumn("sale_start"),
-          productSupportsColumn("sale_end"),
-        ]);
+        const [typeSupported, startSupported, endSupported] = await Promise.all(
+          [
+            productSupportsColumn("sale_type"),
+            productSupportsColumn("sale_start"),
+            productSupportsColumn("sale_end"),
+          ]
+        );
 
         if (!active) return;
 
@@ -124,7 +126,12 @@ const AddProductContent = () => {
       } catch (error) {
         if (!active) return;
         console.error("Failed to detect sale-related columns:", error);
-        setSaleSupport({ type: false, start: false, end: false, checked: true });
+        setSaleSupport({
+          type: false,
+          start: false,
+          end: false,
+          checked: true,
+        });
       }
     })();
 
@@ -669,8 +676,8 @@ const AddProductContent = () => {
               </select>
               {!saleSupport.type && saleSupport.checked && (
                 <p className="text-xs mt-1 text-gray-500">
-                  Supabase does not expose a `sale_type` column. This selection will
-                  be ignored until the column is added.
+                  Supabase does not expose a `sale_type` column. This selection
+                  will be ignored until the column is added.
                 </p>
               )}
             </div>
