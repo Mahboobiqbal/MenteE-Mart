@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 import img1 from "../assets/1.jpg";
 import img2 from "../assets/2.png";
 import img3 from "../assets/3.jpg";
@@ -37,6 +38,16 @@ const HeroSection = () => {
         <div className="mx-auto w-full max-w-screen-2xl grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Text Content */}
           <div className="text-center md:text-left">
+            <div className="mb-6 flex justify-center md:justify-start items-center gap-4">
+              <img
+                src={logo}
+                alt="MenteE Mart Logo"
+                className="w-16 h-16 rounded-lg shadow-md"
+              />
+              <span className="text-2xl font-bold" style={{ color: emerald }}>
+                Nainzaka
+              </span>
+            </div>
             <div
               className="inline-block bg-white text-[${charcoal}] px-4 py-1 rounded-full text-sm font-semibold mb-4"
               style={{ color: emerald, background: white }}

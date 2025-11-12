@@ -194,7 +194,7 @@ const ProductDetail = () => {
 
   const handleCheckout = async () => {
     if (!product.in_stock) return;
-    
+
     // Add product to cart and navigate to checkout
     await addToCart(product, quantity);
     navigate("/checkout");
@@ -717,7 +717,11 @@ const ProductDetail = () => {
         </motion.nav>
 
         {/* Main Product Section */}
-        <main className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-16" role="main" aria-labelledby="product-title">
+        <main
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start mb-16"
+          role="main"
+          aria-labelledby="product-title"
+        >
           {/* Product Gallery */}
           <section className="order-2 lg:order-1" aria-label="Product images">
             <ProductGallery />
@@ -1093,16 +1097,10 @@ const ProductDetail = () => {
               <div className="flex animate-scroll whitespace-nowrap">
                 {[...Array(6)].map((_, index) => (
                   <div key={index} className="flex items-center space-x-8 mx-4">
-                    <div className="bg-white rounded-xl p-4 shadow-lg">
-                      <img
-                        src="/src/assets/nainzaka logo.jpg"
-                        alt="Nainzaka Aesthetic Logo"
-                        className="h-16 w-auto object-contain rounded-lg"
-                        onError={(e) => {
-                          e.target.src =
-                            "https://via.placeholder.com/200x80/FFFFFF/6B7280?text=Nainzaka+Aesthetic";
-                        }}
-                      />
+                    <div className="bg-white rounded-xl p-4 shadow-lg flex items-center justify-center">
+                      <span className="text-lg font-bold text-gray-800">
+                        Nainzaka
+                      </span>
                     </div>
                     <div className="text-white font-semibold text-lg">
                       Premium Quality Products

@@ -11,7 +11,6 @@ import TrendingProducts from "./TrendingProducts";
 import NewArrivals from "./NewArrivals";
 import ServiceMapMobile from "./ServiceMapMobile";
 import { getCachedData, loadProducts } from "../utils/dataLoader";
-
 const FEATURED_LIMIT = 6;
 const white = "#FFFFFF";
 
@@ -228,16 +227,10 @@ const Home = () => {
               <div className="flex animate-scroll whitespace-nowrap">
                 {[...Array(6)].map((_, index) => (
                   <div key={index} className="flex items-center space-x-8 mx-4">
-                    <div className="bg-white rounded-xl p-4 shadow-lg">
-                      <img
-                        src="/src/assets/nainzaka logo.jpg"
-                        alt="Nainzaka Aesthetic Logo"
-                        className="h-16 w-auto object-contain rounded-lg"
-                        onError={(e) => {
-                          e.target.src =
-                            "https://via.placeholder.com/200x80/FFFFFF/6B7280?text=Nainzaka+Aesthetic";
-                        }}
-                      />
+                    <div className="bg-white rounded-xl p-4 shadow-lg flex items-center justify-center">
+                      <span className="text-lg font-bold text-gray-800">
+                        Nainzaka
+                      </span>
                     </div>
                     <div className="text-white font-semibold text-lg">
                       Premium Quality Products

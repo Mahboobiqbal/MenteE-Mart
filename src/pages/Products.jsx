@@ -259,6 +259,11 @@ const Products = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative z-10">
           <div className="text-center space-y-3">
+            <div className="mb-2">
+              <span className="text-2xl font-bold" style={{ color: emerald }}>
+                Nainzaka
+              </span>
+            </div>
             <h1
               className="text-4xl md:text-5xl font-light"
               style={{ color: charcoal }}
