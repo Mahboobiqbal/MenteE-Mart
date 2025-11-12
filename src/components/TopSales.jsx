@@ -30,8 +30,8 @@ const TopSales = ({ products = [], loading = false }) => {
 
   if (loading) {
     return (
-      <section className="mt-12">
-        <div className="flex items-baseline justify-between mb-6">
+      <section className="mt-12 mb-8 px-2">
+        <div className="flex items-baseline justify-between mb-8">
           <div>
             <h2 className="text-xl font-bold text-[#333333]">🔥 Top Sales</h2>
             <p className="text-sm text-gray-600">
@@ -39,8 +39,8 @@ const TopSales = ({ products = [], loading = false }) => {
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
               className="h-64 rounded-xl bg-gray-100 animate-pulse"
@@ -56,8 +56,8 @@ const TopSales = ({ products = [], loading = false }) => {
   }
 
   return (
-    <section className="mt-12">
-      <div className="flex items-center justify-between mb-6">
+    <section className="mt-12 mb-12 px-2">
+      <div className="flex items-center justify-between mb-10">
         <div>
           <h2 className="text-xl font-bold text-[#333333] flex items-center gap-2">
             🔥 Top Sales
@@ -77,8 +77,8 @@ const TopSales = ({ products = [], loading = false }) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        {topSales.map((product) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6 px-4">
+        {topSales.slice(0, 6).map((product) => (
           <div key={product.id} className="relative group">
             {/* Rank Badge */}
             <div className="absolute -top-2 -left-2 z-10">

@@ -16,7 +16,7 @@ const NewArrivals = ({ products = [], loading = false }) => {
             <p className="text-sm text-gray-600">Fresh products just added</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
@@ -52,7 +52,7 @@ const NewArrivals = ({ products = [], loading = false }) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6">
         {products.map((product) => {
           const addedDate =
             product.dateAdded || product.created_at || product.updated_at;

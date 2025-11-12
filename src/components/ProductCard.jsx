@@ -11,7 +11,6 @@ import {
   Plus,
 } from "lucide-react";
 import supabase from "../utils/supabase";
-import StoreContact from "./StoreContact";
 import { useCart } from "../hooks/useCart";
 
 const ProductCard = ({
@@ -134,51 +133,7 @@ const ProductCard = ({
     openCart(); // Open cart drawer to show the added item
   };
 
-  // WhatsApp order handler
-  const handleWhatsAppOrder = async (e) => {
-    e.stopPropagation();
-    if (!in_stock) return;
 
-    trackClick("whatsapp");
-    const finalPrice = sale_price || price || 0;
-
-    // Build comprehensive product message with all details
-    let message = `*Product Inquiry*\n\n`;
-    message += `📦 *Product Name:* ${name}\n`;
-    message += `💰 *Price:* ₨${finalPrice.toLocaleString()}`;
-
-    if (sale_price && price && price > sale_price) {
-      const discount = Math.round(((price - sale_price) / price) * 100);
-      message += ` (Save ${discount}%)\n`;
-      message += `📌 *Original Price:* ₨${price.toLocaleString()}\n`;
-    } else {
-      message += `\n`;
-    }
-
-    if (category) {
-      message += `🏷️ *Category:* ${category}\n`;
-    }
-
-    if (description) {
-      message += `📝 *Description:* ${description.substring(0, 150)}${
-        description.length > 150 ? "..." : ""
-      }\n`;
-    }
-
-    message += `📊 *Stock Status:* ${
-      in_stock ? "✅ In Stock" : "❌ Out of Stock"
-    }\n`;
-    message += `⭐ *Rating:* ${rating}/5 (${reviews} reviews)\n`;
-
-    message += `\nPlease reply with quantity and preferred color/variant.`;
-
-    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "";
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      message
-    )}`;
-
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-  };
 
   // Price calculations
   const finalPrice = sale_price || price || 0;
@@ -209,7 +164,7 @@ const ProductCard = ({
   return (
     <article
       ref={cardRef}
-      className="group relative bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-lg shadow-black/5 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-black/10 hover:scale-[1.02] hover:-translate-y-1 cursor-pointer"
+      className="group relative bg-white/90 backdrop-blur-xl rounded-xl border border-white/30 shadow-md shadow-black/5 overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-black/10 hover:scale-[1.01] cursor-pointer"
       onClick={handleProductClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -218,7 +173,7 @@ const ProductCard = ({
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-blue-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
       {/* Image Section */}
-      <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+      <div className="relative aspect-[2/3] bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
         <img
           src={currentImage}
           alt={name}
@@ -355,9 +310,9 @@ const ProductCard = ({
       </div>
 
       {/* Content Section */}
-      <div className="p-6 space-y-4 relative z-10">
+      <div className="p-3 space-y-1.5 relative z-10">
         {/* Product Name */}
-        <h3 className="font-bold text-gray-900 line-clamp-2 leading-tight group-hover:text-emerald-700 transition-colors">
+        <h3 className="font-bold text-gray-900 line-clamp-1 text-xs leading-tight group-hover:text-emerald-700 transition-colors">
           {name}
         </h3>
 
@@ -423,64 +378,27 @@ const ProductCard = ({
         )}
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-1 gap-3 pt-2">
-          {store ? (
-            /* Store-specific contact buttons */
-            <>
-              <StoreContact storeName={store} productName={name} />
-              <button
-                onClick={handleAddToCart}
-                disabled={!in_stock}
-                className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
-                  in_stock
-                    ? `bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg ${
-                        showAddAnimation ? "animate-bounce" : ""
-                      }`
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <Plus className="w-4 h-4 inline mr-2" />
-                {showAddAnimation ? "Added!" : "Add to Cart"}
-              </button>
-            </>
-          ) : (
-            /* Fallback to general buttons */
-            <>
-              <button
-                onClick={handleAddToCart}
-                disabled={!in_stock}
-                className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
-                  in_stock
-                    ? `bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg ${
-                        showAddAnimation ? "animate-bounce" : ""
-                      }`
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <Plus className="w-4 h-4 inline mr-2" />
-                {showAddAnimation ? "Added!" : "Add to Cart"}
-              </button>
-
-              <button
-                onClick={handleWhatsAppOrder}
-                disabled={!in_stock}
-                className={`py-3 px-4 rounded-xl font-semibold transition-all transform hover:scale-105 ${
-                  in_stock
-                    ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <ShoppingCart className="w-4 h-4 inline mr-2" />
-                Order Now
-              </button>
-            </>
-          )}
+        <div className="grid grid-cols-1 gap-2 pt-1">
+          <button
+            onClick={handleAddToCart}
+            disabled={!in_stock}
+            className={`py-1.5 px-2.5 rounded-md text-xs font-medium transition-all transform hover:scale-[1.02] ${
+              in_stock
+                ? `bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg ${
+                    showAddAnimation ? "animate-bounce" : ""
+                  }`
+                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            <Plus className="w-3 h-3 inline mr-1.5" />
+            {showAddAnimation ? "Added!" : "Add to Cart"}
+          </button>
 
           <button
             onClick={handleProductClick}
-            className="py-3 px-4 border-2 border-emerald-600 text-emerald-600 rounded-xl font-semibold hover:bg-emerald-600 hover:text-white transition-all transform hover:scale-105"
+            className="py-1.5 px-2.5 border border-emerald-600 text-emerald-600 rounded-md text-xs font-medium hover:bg-emerald-600 hover:text-white transition-all transform hover:scale-[1.02]"
           >
-            <Tag className="w-4 h-4 inline mr-2" />
+            <Tag className="w-3 h-3 inline mr-1.5" />
             Details
           </button>
         </div>

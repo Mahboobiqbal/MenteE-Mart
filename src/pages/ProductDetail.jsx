@@ -192,24 +192,12 @@ const ProductDetail = () => {
     );
   };
 
-  const handleOrder = async () => {
+  const handleCheckout = async () => {
     if (!product.in_stock) return;
-
-    await supabase.rpc("increment_product_clicks", {
-      p_id: product.id,
-      p_whatsapp: true,
-    });
-
-    const price = product.sale_price ?? product.price;
-    const message = `Hello! I'm interested in *${product.name}* (₨${Number(
-      price * quantity
-    ).toLocaleString()}) - Quantity: ${quantity}`;
-    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || "";
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      message
-    )}`;
-
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    
+    // Add product to cart and navigate to checkout
+    await addToCart(product, quantity);
+    navigate("/checkout");
   };
 
   const handleShare = async () => {
@@ -1385,7 +1373,7 @@ const ProductDetail = () => {
                 Discover more amazing products from our collection
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6">
               {recommended.map((rec, idx) => (
                 <motion.div
                   key={rec.id}
