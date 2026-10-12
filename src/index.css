@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Animation for Nainzaka Aesthetic collaboration section */
+/* Marquee scroll animation */
 @keyframes scroll {
   0% {
     transform: translateX(0);

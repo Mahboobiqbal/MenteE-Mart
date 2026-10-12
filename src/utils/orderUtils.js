@@ -62,7 +62,7 @@ export const createOrder = async (orderData) => {
     }
 
     // Get store configuration for commission rate
-    const storeName = orderData.items[0]?.store || "MenteE";
+    const storeName = orderData.items[0]?.store || "Mena Bazar";
     let commissionRate = 5.0; // Default commission rate
     let commissionAmount = 0;
 

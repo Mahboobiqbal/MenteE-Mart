@@ -3,7 +3,7 @@
  * Lightweight helper to add a column to a Supabase (Postgres) table.
  *
  * Usage examples:
- *   node scripts/addColumn.cjs products store text --default "MenteE" --not-null
+ *   node scripts/addColumn.cjs products store text --default "Mena Bazar" --not-null
  *   node scripts/addColumn.cjs --table products --column store --type text
  *   node scripts/addColumn.cjs products whatsapp_clicks integer --default-literal 0
  *
@@ -204,7 +204,7 @@ function parseArgs(argv) {
 
 function printUsage() {
   console.log(
-    `\nAdd a column to Supabase Postgres.\n\nUsage:\n  node scripts/addColumn.cjs <table> <column> <type> [options]\n\nOptions:\n  --schema <name>             Schema name (default: public)\n  --default <string>          Default value treated as string literal\n  --default-literal <sql>     Default value as raw SQL literal\n  --nullable <true|false>     Whether the column allows NULL (default: true)\n  --not-null                  Shorthand to mark column as NOT NULL\n  --comment <text>            Add a comment/description to the column\n  --dry-run                   Show SQL without executing it\n\nExamples:\n  node scripts/addColumn.cjs products store text\n  node scripts/addColumn.cjs products store text --default "MenteE"\n  node scripts/addColumn.cjs products whatsapp_clicks integer --default-literal 0\n`
+    `\nAdd a column to Supabase Postgres.\n\nUsage:\n  node scripts/addColumn.cjs <table> <column> <type> [options]\n\nOptions:\n  --schema <name>             Schema name (default: public)\n  --default <string>          Default value treated as string literal\n  --default-literal <sql>     Default value as raw SQL literal\n  --nullable <true|false>     Whether the column allows NULL (default: true)\n  --not-null                  Shorthand to mark column as NOT NULL\n  --comment <text>            Add a comment/description to the column\n  --dry-run                   Show SQL without executing it\n\nExamples:\n  node scripts/addColumn.cjs products store text\n  node scripts/addColumn.cjs products store text --default "Mena Bazar"\n  node scripts/addColumn.cjs products whatsapp_clicks integer --default-literal 0\n`
   );
 }
 

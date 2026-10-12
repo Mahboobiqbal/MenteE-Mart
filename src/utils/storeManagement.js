@@ -101,6 +101,23 @@ export const getStoreById = async (storeId) => {
   }
 };
 
+// Get single store by slug
+export const getStoreBySlug = async (slug) => {
+  try {
+    const { data, error } = await supabase
+      .from("stores")
+      .select("*")
+      .eq("slug", slug)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error fetching store by slug:", error);
+    return null;
+  }
+};
+
 // Update store
 export const updateStore = async (storeId, updates) => {
   try {
@@ -611,7 +628,7 @@ export const getStoreWhatsAppUrl = (store, order = null) => {
     message += "Please check your store dashboard for new orders.\n";
   }
 
-  message += `\n---\nMenteE-Mart Order Management`;
+  message += `\n---\nMena Bazar Order Management`;
 
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 };

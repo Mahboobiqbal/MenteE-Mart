@@ -34,7 +34,7 @@ A Node.js script to bulk upload products from a CSV file with automatic image up
 1. **Install Dependencies**
 
 ```bash
-cd MenteE-Mart
+cd Mena Bazar
 npm install @supabase/supabase-js dotenv
 ```
 
@@ -403,7 +403,7 @@ A: Use cron jobs (Linux/Mac) or Task Scheduler (Windows) to run the script on a 
 
 ## License
 
-Same as MenteE-Mart project
+Same as Mena Bazar project
 
 ---
 

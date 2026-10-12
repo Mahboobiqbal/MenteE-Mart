@@ -63,8 +63,7 @@ const EnhancedOrderManagement = () => {
   // Available stores from environment or data
   const storeOptions = [
     { value: "all", label: "All Stores" },
-    { value: "MenteE", label: "MenteE Store" },
-    { value: "Nainzaka", label: "Nainzaka Store" },
+    { value: "Mena Bazar", label: "Mena Bazar Store" },
   ];
 
   useEffect(() => {
@@ -212,7 +211,7 @@ const EnhancedOrderManagement = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
-              onClick={() => openStoreContact("MenteE")}
+              onClick={() => openStoreContact("Mena Bazar")}
               className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center">
@@ -220,30 +219,13 @@ const EnhancedOrderManagement = () => {
                   <Store className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="text-left">
-                  <div className="font-medium text-gray-900">MenteE Store</div>
-                  <div className="text-sm text-gray-500">923001234567</div>
+                  <div className="font-medium text-gray-900">Mena Bazar Store</div>
+                  <div className="text-sm text-gray-500">923472886228</div>
                 </div>
               </div>
               <MessageCircle className="w-5 h-5 text-green-600" />
             </button>
 
-            <button
-              onClick={() => openStoreContact("Nainzaka")}
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                  <Store className="w-5 h-5 text-purple-600" />
-                </div>
-                <div className="text-left">
-                  <div className="font-medium text-gray-900">
-                    Nainzaka Store
-                  </div>
-                  <div className="text-sm text-gray-500">923009876543</div>
-                </div>
-              </div>
-              <MessageCircle className="w-5 h-5 text-green-600" />
-            </button>
           </div>
         </div>
 

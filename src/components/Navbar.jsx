@@ -12,6 +12,7 @@ const Navbar = () => {
   const navLinks = [
     { label: "Home", to: "/" },
     { label: "Shop", to: "/products" },
+    { label: "Stores", to: "/stores" },
     { label: "Categories", to: "/categories" },
     { label: "About", to: "/about" },
   ];
@@ -34,14 +35,20 @@ const Navbar = () => {
     };
   }, []);
 
+  const goToSearch = (raw) => {
+    const q = raw.trim();
+    setIsOpen(false);
+    if (q) {
+      navigate(`/products?q=${encodeURIComponent(q)}`);
+      setQuery("");
+    } else {
+      navigate("/products");
+    }
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
-    const q = query.trim();
-    if (q) {
-      navigate(`/search?q=${encodeURIComponent(q)}`);
-      setQuery("");
-      setIsOpen(false);
-    }
+    goToSearch(query);
   };
 
   return (
@@ -52,11 +59,11 @@ const Navbar = () => {
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
               <span className="text-[#007a5a] font-bold text-xl">
-                <img src={logo} alt="MenteE Mart" />
+                <img src={logo} alt="Mena Bazar" />
               </span>
             </div>
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#ffd700] to-[#ffaa00]">
-              MenteE Mart
+              Mena Bazar
             </span>
           </Link>
 
@@ -148,15 +155,7 @@ const Navbar = () => {
           <div className="md:hidden pb-5">
             {/* Mobile Search */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = query.trim();
-                if (q) {
-                  navigate(`/search?q=${encodeURIComponent(q)}`);
-                  setQuery("");
-                  setIsOpen(false);
-                }
-              }}
+              onSubmit={handleSearch}
               className="relative w-full mb-4"
             >
               <input
@@ -168,7 +167,7 @@ const Navbar = () => {
               />
               <button
                 type="submit"
-                className="absolute inset-y-0 right-0 px-6 rounded-r-full bg-gradient-to-r from-[#ffd700] to-[#ffaa00] text-[#33] font-semibold"
+                className="absolute inset-y-0 right-0 px-6 rounded-r-full bg-gradient-to-r from-[#ffd700] to-[#ffaa00] text-[#333] font-semibold"
               >
                 Search
               </button>

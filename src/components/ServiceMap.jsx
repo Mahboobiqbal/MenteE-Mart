@@ -1,4 +1,4 @@
-// filepath: h:\Code\MenteE Mart\src\components\ServiceMap.jsx
+// filepath: h:\Code\Mena Bazar\src\components\ServiceMap.jsx
 import React from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";

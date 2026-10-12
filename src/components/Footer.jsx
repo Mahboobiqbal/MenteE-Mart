@@ -1,7 +1,23 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 
-const Footer = () => (
+const footerCategories = [
+  "Electronics",
+  "Fashion",
+  "Home & Kitchen",
+  "Beauty",
+];
+
+const Footer = () => {
+  const rawWhatsApp = (import.meta.env.VITE_WHATSAPP_NUMBER || "923472886228").replace(
+    /\D/g,
+    ""
+  );
+  const waLink = `https://wa.me/${rawWhatsApp}`;
+  const displayPhone = `+${rawWhatsApp}`;
+
+  return (
   <footer className="w-full bg-gradient-to-br from-[#007a5a] to-[#005c4b] text-[#e9f5f0] mt-16">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
@@ -11,13 +27,13 @@ const Footer = () => (
             <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg">
               <img
                 src={logo}
-                alt="MenteE Mart logo"
+                alt="Mena Bazar logo"
                 className="h-8 w-8 object-contain"
               />
             </div>
             <div>
               <span className="block text-2xl font-bold text-white">
-                MenteE Mart
+                Mena Bazar
               </span>
               <span className="block text-xs text-[#a0d9c1] font-medium tracking-wider">
                 Shop Smart. Live Better.
@@ -30,7 +46,7 @@ const Footer = () => (
           </p>
           <div className="pt-2">
             <a
-              href="https://wa.me/923001234567"
+              href={waLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center px-4 py-2 bg-[#25D366] text-white rounded-full text-sm font-medium hover:bg-[#128C7E] transition-colors duration-300 shadow-md"
@@ -54,50 +70,26 @@ const Footer = () => (
             Quick Links
           </h3>
           <ul className="space-y-3">
-            <li>
-              <a
-                href="/"
-                className="text-[#d1f0e2] hover:text-white transition-colors flex items-center group"
-              >
-                <span className="mr-2 text-[#00a884] group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-                Home
-              </a>
-            </li>
-            <li>
-              <a
-                href="/products"
-                className="text-[#d1f0e2] hover:text-white transition-colors flex items-center group"
-              >
-                <span className="mr-2 text-[#00a884] group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-                Shop
-              </a>
-            </li>
-            <li>
-              <a
-                href="/about"
-                className="text-[#d1f0e2] hover:text-white transition-colors flex items-center group"
-              >
-                <span className="mr-2 text-[#00a884] group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-                About Us
-              </a>
-            </li>
-            <li>
-              <a
-                href="/contact"
-                className="text-[#d1f0e2] hover:text-white transition-colors flex items-center group"
-              >
-                <span className="mr-2 text-[#00a884] group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-                Contact
-              </a>
-            </li>
+            {[
+              { label: "Home", to: "/" },
+              { label: "Shop", to: "/products" },
+              { label: "Stores", to: "/stores" },
+              { label: "About Us", to: "/about" },
+              { label: "Contact", to: "/contact" },
+              { label: "Track Order", to: "/track-order" },
+            ].map((link) => (
+              <li key={link.label}>
+                <Link
+                  to={link.to}
+                  className="text-[#d1f0e2] hover:text-white transition-colors flex items-center group"
+                >
+                  <span className="mr-2 text-[#00a884] group-hover:translate-x-1 transition-transform">
+                    →
+                  </span>
+                  {link.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -107,29 +99,24 @@ const Footer = () => (
             Top Categories
           </h3>
           <ul className="space-y-3">
-            <li className="flex items-center">
-              <span className="w-2 h-2 bg-[#00a884] rounded-full mr-3"></span>
-              <span className="text-[#d1f0e2] hover:text-white transition-colors cursor-pointer">
-                Shawals — Men's
-              </span>
-            </li>
-            <li className="flex items-center">
-              <span className="w-2 h-2 bg-[#00a884] rounded-full mr-3"></span>
-              <span className="text-[#d1f0e2] hover:text-white transition-colors cursor-pointer">
-                Shawals — Women's
-              </span>
-            </li>
-            <li className="flex items-center">
-              <span className="w-2 h-2 bg-[#00a884] rounded-full mr-3"></span>
-              <span className="text-[#d1f0e2] hover:text-white transition-colors cursor-pointer">
-                Peshawar Chappals
-              </span>
-            </li>
-            <li className="flex items-center">
-              <span className="w-2 h-2 bg-[#00a884] rounded-full mr-3"></span>
-              <span className="text-[#d1f0e2] hover:text-white transition-colors cursor-pointer">
-                Citrale Caps
-              </span>
+            {footerCategories.map((category) => (
+              <li key={category} className="flex items-center">
+                <span className="w-2 h-2 bg-[#00a884] rounded-full mr-3"></span>
+                <Link
+                  to={`/products?category=${encodeURIComponent(category)}`}
+                  className="text-[#d1f0e2] hover:text-white transition-colors"
+                >
+                  {category}
+                </Link>
+              </li>
+            ))}
+            <li className="flex items-center pt-1">
+              <Link
+                to="/categories"
+                className="text-white font-medium hover:underline transition-colors"
+              >
+                View all categories →
+              </Link>
             </li>
           </ul>
         </div>
@@ -178,7 +165,7 @@ const Footer = () => (
                   d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                 />
               </svg>
-              <span className="text-[#d1f0e2] text-sm">+92 340 1321321</span>
+              <span className="text-[#d1f0e2] text-sm">{displayPhone}</span>
             </li>
             <li className="flex items-start">
               <svg
@@ -195,7 +182,7 @@ const Footer = () => (
                 />
               </svg>
               <span className="text-[#d1f0e2] text-sm">
-                info@menteemart.com
+                info@menabazar.com
               </span>
             </li>
           </ul>
@@ -204,7 +191,7 @@ const Footer = () => (
             <h4 className="text-white font-medium text-sm mb-3">Follow Us</h4>
             <div className="flex space-x-4">
               <a
-                href="https://wa.me/923001234567"
+                href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#d1f0e2] hover:text-white transition-colors"
@@ -219,7 +206,7 @@ const Footer = () => (
                 </svg>
               </a>
               <a
-                href="https://instagram.com/nainzaka_aesthetics"
+                href="https://instagram.com/menabazar"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#d1f0e2] hover:text-white transition-colors"
@@ -233,7 +220,7 @@ const Footer = () => (
                 </svg>
               </a>
               <a
-                href="https://www.tiktok.com/@nainzaka?_t=ZS-8y9jmJi1O7U&_r=1"
+                href="https://www.tiktok.com/@menabazar"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#d1f0e2] hover:text-white transition-colors"
@@ -254,33 +241,23 @@ const Footer = () => (
       {/* Bottom Bar */}
       <div className="border-t border-[#00a884]/20 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
         <p className="text-[#a0d9c1] text-sm text-center md:text-left">
-          © {new Date().getFullYear()} MenteE Mart. All rights reserved.
+          © {new Date().getFullYear()} Mena Bazar. All rights reserved.
         </p>
         <div className="flex flex-wrap justify-center gap-4 mt-4 md:mt-0">
-          <a
-            href="/privacy"
-            className="text-[#a0d9c1] hover:text-white text-sm transition-colors"
-          >
-            Privacy Policy
-          </a>
-          <a
-            href="/terms"
-            className="text-[#a0d9c1] hover:text-white text-sm transition-colors"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="/faq"
-            className="text-[#a0d9c1] hover:text-white text-sm transition-colors"
-          >
-            FAQs
-          </a>
-          <a
-            href="/shipping"
-            className="text-[#a0d9c1] hover:text-white text-sm transition-colors"
-          >
-            Shipping Info
-          </a>
+          {[
+            { label: "Privacy Policy", to: "/privacy" },
+            { label: "Terms of Service", to: "/terms" },
+            { label: "FAQs", to: "/faq" },
+            { label: "Shipping Info", to: "/shipping" },
+          ].map((link) => (
+            <Link
+              key={link.label}
+              to={link.to}
+              className="text-[#a0d9c1] hover:text-white text-sm transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
         <div className="mt-4 md:mt-0">
           <p className="text-[#a0d9c1] text-sm">
@@ -298,6 +275,7 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;

@@ -118,18 +118,13 @@ Thank you!`;
 // WhatsApp contact information for different stores
 export const getStoreWhatsAppInfo = (storeName) => {
   const storeContacts = {
-    MenteE: {
-      phoneNumber: "923001234567", // Replace with actual MenteE WhatsApp
-      displayName: "MenteE Store",
-      message: "Hello! I have a question about my MenteE order.",
-    },
-    Nainzaka: {
-      phoneNumber: "923009876543", // Replace with actual Nainzaka WhatsApp
-      displayName: "Nainzaka Store",
-      message: "Hello! I have a question about my Nainzaka order.",
+    "Mena Bazar": {
+      phoneNumber: "923472886228", // Replace with actual Mena Bazar WhatsApp
+      displayName: "Mena Bazar Store",
+      message: "Hello! I have a question about my Mena Bazar order.",
     },
     Default: {
-      phoneNumber: import.meta.env.VITE_WHATSAPP_NUMBER || "923001234567",
+      phoneNumber: import.meta.env.VITE_WHATSAPP_NUMBER || "923472886228",
       displayName: "Customer Support",
       message: "Hello! I have a question about my order.",
     },
@@ -158,4 +153,42 @@ export const getStoreContactUrl = (storeName = "Default") => {
   const phoneNumber = storeInfo.phoneNumber.replace(/\D/g, "");
 
   return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+};
+
+// Resolve a store's WhatsApp number from a normalized product record
+export const resolveStoreWhatsAppNumber = (product) => {
+  const raw =
+    product?.store_whatsapp ||
+    product?.whatsapp_number ||
+    product?.stores?.whatsapp_number ||
+    import.meta.env.VITE_WHATSAPP_NUMBER ||
+    "";
+  return String(raw).replace(/\D/g, "");
+};
+
+// Build the order message a customer sends to the store
+export const buildProductOrderMessage = (product, quantity = 1) => {
+  const unitPrice = Number(product?.sale_price ?? product?.price ?? 0);
+  const qty = Math.max(1, Number(quantity) || 1);
+  const storeName = product?.store || product?.stores?.name || "Mena Bazar";
+
+  return [
+    "*NEW ORDER REQUEST*",
+    "",
+    `*Product:* ${product?.name || ""}`,
+    `*Store:* ${storeName}`,
+    `*Unit Price:* Rs ${unitPrice.toLocaleString()}`,
+    `*Quantity:* ${qty}`,
+    `*Total:* Rs ${(unitPrice * qty).toLocaleString()}`,
+    "",
+    "Please confirm availability and delivery details.",
+  ].join("\n");
+};
+
+// Generate a WhatsApp order URL for a customer to contact the product's store
+export const getProductOrderWhatsAppUrl = (product, quantity = 1) => {
+  const number = resolveStoreWhatsAppNumber(product);
+  const message = buildProductOrderMessage(product, quantity);
+  const base = number ? `https://wa.me/${number}` : "https://wa.me/";
+  return `${base}?text=${encodeURIComponent(message)}`;
 };

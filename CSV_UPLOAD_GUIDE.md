@@ -2,7 +2,7 @@
 
 ## Overview
 
-This CSV template is designed for bulk uploading products to the MenteE-Mart platform. It includes all essential and optional product fields.
+This CSV template is designed for bulk uploading products to the Mena Bazar platform. It includes all essential and optional product fields.
 
 ## CSV File Format
 
@@ -247,7 +247,7 @@ name,description,category,price,sale_price,sale_type,sale_start,sale_end,in_stoc
 For issues or questions:
 
 - Contact admin support
-- Email: admin@mentemart.com
+- Email: admin@menabazar.com
 - Include your CSV file and error message
 
 ---

@@ -133,7 +133,7 @@ const ProfessionalBusinessDashboard = () => {
 
   const handleTransferToStore = (order) => {
     // Get store name from order items (use product.store from database)
-    const orderStore = order.order_items?.[0]?.product_store || "MenteE";
+    const orderStore = order.order_items?.[0]?.product_store || "Mena Bazar";
     const whatsappUrl = getStoreWhatsAppUrl(orderStore, order);
     window.open(whatsappUrl, "_blank");
   };
@@ -153,7 +153,7 @@ const ProfessionalBusinessDashboard = () => {
         "WhatsApp",
       ],
       ...orders.map((order) => {
-        const orderStore = order.order_items?.[0]?.product_store || "MenteE";
+        const orderStore = order.order_items?.[0]?.product_store || "Mena Bazar";
         const storeConfig = stores.find((s) => s.store_name === orderStore);
         return [
           order.order_number,
@@ -477,7 +477,7 @@ const ProfessionalBusinessDashboard = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {orders.slice(0, 10).map((order) => {
                       const orderStore =
-                        order.order_items?.[0]?.product_store || "MenteE";
+                        order.order_items?.[0]?.product_store || "Mena Bazar";
 
                       return (
                         <tr key={order.id} className="hover:bg-gray-50">

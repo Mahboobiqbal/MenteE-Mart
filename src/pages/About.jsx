@@ -120,23 +120,15 @@ const About = () => {
             <div className="inline-flex items-center gap-4 mb-6">
               <img
                 src={logo}
-                alt="MenteE Mart Logo"
+                alt="Mena Bazar Logo"
                 className="w-16 h-16 rounded-lg shadow-md"
               />
               <div>
-                <div className="inline-flex items-center gap-3 mb-2">
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: emerald }}
-                  >
-                    Nainzaka
-                  </span>
-                </div>
                 <div
-                  className="text-sm font-semibold"
+                  className="text-lg font-bold mb-1"
                   style={{ color: emerald }}
                 >
-                  MenteE Mart
+                  Mena Bazar
                 </div>
                 <div className="text-xs text-gray-600">
                   Shop Smart. Live Better.
@@ -451,7 +443,7 @@ const About = () => {
 
       {/* <footer className="bg-[#0f172a]/5 py-8 mt-8">
         <div className="max-w-7xl mx-auto px-6 text-center text-sm text-gray-600">
-          © {new Date().getFullYear()} MenteE Mart — Built with care. <span className="block">Made in Pakistan • Support: hello@menteemart.example</span>
+          © {new Date().getFullYear()} Mena Bazar — Built with care. <span className="block">Made in Pakistan • Support: hello@menabazar.example</span>
         </div>
       </footer> */}
     </div>

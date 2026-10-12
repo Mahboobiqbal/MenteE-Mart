@@ -3,6 +3,8 @@ import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import AnnouncementBar from "./components/AnnouncementBar";
+import FloatingWhatsApp from "./components/FloatingWhatsApp";
 const Home = lazy(() => import("./components/Home"));
 const About = lazy(() => import("./pages/About"));
 const ProductCard = lazy(() => import("./components/ProductCard")); // if you have ProductDetails, import that instead
@@ -15,6 +17,9 @@ const Products = lazy(() => import("./pages/Products"));
 const Categories = lazy(() => import("./pages/Categories"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
+const Stores = lazy(() => import("./pages/Stores"));
+const StorePage = lazy(() => import("./pages/StorePage"));
+const InfoPage = lazy(() => import("./pages/InfoPage"));
 import { CartProvider } from "./context/CartContext";
 const CartPage = lazy(() => import("./pages/CartPage"));
 const CheckoutForm = lazy(() => import("./components/checkout/CheckoutForm"));
@@ -52,9 +57,11 @@ import "./App.css";
 const Layout = ({ children }) => {
   return (
     <>
+      <AnnouncementBar />
       <Navbar />
       <main>{children}</main>
       <Footer />
+      <FloatingWhatsApp />
     </>
   );
 };
@@ -84,6 +91,46 @@ const App = () => {
               element={
                 <Layout>
                   <About />
+                </Layout>
+              }
+            />
+            <Route
+              path="/contact"
+              element={
+                <Layout>
+                  <InfoPage slug="contact" />
+                </Layout>
+              }
+            />
+            <Route
+              path="/shipping"
+              element={
+                <Layout>
+                  <InfoPage slug="shipping" />
+                </Layout>
+              }
+            />
+            <Route
+              path="/faq"
+              element={
+                <Layout>
+                  <InfoPage slug="faq" />
+                </Layout>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <Layout>
+                  <InfoPage slug="privacy" />
+                </Layout>
+              }
+            />
+            <Route
+              path="/terms"
+              element={
+                <Layout>
+                  <InfoPage slug="terms" />
                 </Layout>
               }
             />
@@ -295,6 +342,22 @@ const App = () => {
               element={
                 <Layout>
                   <Products />
+                </Layout>
+              }
+            />
+            <Route
+              path="/stores"
+              element={
+                <Layout>
+                  <Stores />
+                </Layout>
+              }
+            />
+            <Route
+              path="/store/:slug"
+              element={
+                <Layout>
+                  <StorePage />
                 </Layout>
               }
             />

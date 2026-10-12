@@ -1,17 +1,15 @@
 import React from "react";
-import { ShoppingCart, X } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useCart } from "../../hooks/useCart";
-import { useNavigate } from "react-router-dom";
 
 const CartIcon = () => {
-  const { totalItems } = useCart();
-  const navigate = useNavigate();
+  const { totalItems, openCart } = useCart();
 
   return (
     <div className="relative">
       {/* Cart Button */}
       <button
-        onClick={() => navigate("/cart")}
+        onClick={openCart}
         className="relative p-2 text-gray-700 hover:text-emerald-600 transition-colors"
         aria-label={`Shopping cart with ${totalItems} items`}
       >

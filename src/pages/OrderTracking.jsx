@@ -434,7 +434,7 @@ const OrderTracking = () => {
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0">
                 <a
-                  href="tel:+923001234567"
+                  href="tel:+923472886228"
                   className="flex items-center text-emerald-600 hover:text-emerald-700"
                 >
                   <Phone className="w-4 h-4 mr-2" />

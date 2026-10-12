@@ -127,22 +127,13 @@ export const getAllStoreConfigs = async () => {
 const getDefaultStores = () => {
   return [
     {
-      store_name: "MenteE",
-      whatsapp_number: "923001234567",
+      store_name: "Mena Bazar",
+      whatsapp_number: "923472886228",
       commission_rate: 5.0,
       commission_type: "percentage",
       is_active: true,
-      store_address: "Default MenteE Store Address",
-      store_contact_email: "mentee@example.com",
-    },
-    {
-      store_name: "Nainzaka",
-      whatsapp_number: "923009876543",
-      commission_rate: 5.0,
-      commission_type: "percentage",
-      is_active: true,
-      store_address: "Default Nainzaka Store Address",
-      store_contact_email: "nainzaka@example.com",
+      store_address: "Default Mena Bazar Store Address",
+      store_contact_email: "menabazar@example.com",
     },
   ];
 };
@@ -150,10 +141,9 @@ const getDefaultStores = () => {
 // Get default WhatsApp numbers for stores
 const getDefaultWhatsAppNumber = (storeName) => {
   const storeNumbers = {
-    MenteE: "923001234567",
-    Nainzaka: "923009876543",
+    "Mena Bazar": import.meta.env.VITE_WHATSAPP_NUMBER || "923472886228",
   };
-  return storeNumbers[storeName] || "923001234567";
+  return storeNumbers[storeName] || "923472886228";
 };
 
 // Get store WhatsApp URL for messaging
@@ -161,7 +151,7 @@ export const getStoreWhatsAppUrl = (storeName, order = null) => {
   const storeConfig = getDefaultStores().find(
     (store) => store.store_name === storeName
   );
-  const whatsappNumber = storeConfig?.whatsapp_number || "923001234567";
+  const whatsappNumber = storeConfig?.whatsapp_number || "923472886228";
 
   let message = "Hello! I have received a new order:\n\n";
 
@@ -191,7 +181,7 @@ export const calculateCommission = async (order) => {
   try {
     // Get store configuration from database
     const storeConfig = await getStoreConfig(
-      order.order_items?.[0]?.product_store || "MenteE"
+      order.order_items?.[0]?.product_store || "Mena Bazar"
     );
     const commissionRate = storeConfig.commission_rate || 5.0;
 
@@ -208,7 +198,7 @@ export const calculateCommission = async (order) => {
     return {
       rate: 5.0,
       amount: Number(order.total_amount) * 0.05,
-      storeConfig: { store_name: "MenteE", commission_rate: 5.0 },
+      storeConfig: { store_name: "Mena Bazar", commission_rate: 5.0 },
     };
   }
 };
@@ -223,7 +213,7 @@ export const generateCommissionReport = async (orders, stores) => {
 
     for (const store of stores) {
       const storeOrders = orders.filter((order) => {
-        const orderStore = order.order_items?.[0]?.product_store || "MenteE";
+        const orderStore = order.order_items?.[0]?.product_store || "Mena Bazar";
         return orderStore === store.store_name;
       });
 
@@ -272,7 +262,7 @@ export const calculateStoreAnalytics = async (orders, stores) => {
 
     for (const store of stores) {
       const storeOrders = orders.filter((order) => {
-        const orderStore = order.order_items?.[0]?.product_store || "MenteE";
+        const orderStore = order.order_items?.[0]?.product_store || "Mena Bazar";
         return orderStore === store.store_name;
       });
 

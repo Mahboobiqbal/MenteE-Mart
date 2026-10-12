@@ -1,8 +1,8 @@
-// filepath: h:\Code\Nainzaka Aesthetics\src\pages\Products.jsx
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import QuickViewModal from "../components/QuickViewModal";
-import AdvancedFilters from "../components/AdvancedFilters";
+import Breadcrumbs from "../components/Breadcrumbs";
 import {
   getCachedData,
   loadCategories,
@@ -15,15 +15,62 @@ const yellow = "#FFD700";
 const white = "#FFFFFF";
 const charcoal = "#333333";
 
+const normalizeSort = (value) => {
+  switch (value) {
+    case "price-low":
+    case "price_low":
+      return "price_low";
+    case "price-high":
+    case "price_high":
+      return "price_high";
+    case "trending":
+    case "top-sales":
+    case "bestseller":
+      return "trending";
+    case "sale":
+    case "discount":
+      return "discount";
+    case "newest":
+      return "newest";
+    case "rating":
+      return "rating";
+    case "name_desc":
+      return "name_desc";
+    default:
+      return "name";
+  }
+};
+
+const discountPercent = (product) => {
+  const regular = Number(product?.regular_price ?? product?.price ?? 0);
+  const sale = Number(product?.sale_price ?? 0);
+  if (sale > 0 && regular > 0 && sale < regular) {
+    return ((regular - sale) / regular) * 100;
+  }
+  return 0;
+};
+
+const engagementScore = (product) => {
+  const views = Number(product?.view_count ?? product?.views ?? 0);
+  const clicks = Number(product?.click_count ?? product?.clicks ?? 0);
+  const whatsapp = Number(product?.whatsapp_clicks ?? 0);
+  const sales = Number(product?.sales_count ?? product?.orders ?? 0);
+  return views + clicks * 3 + whatsapp * 5 + sales * 10;
+};
+
 const Products = () => {
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStore, setSelectedStore] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 50000]);
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState(
+    normalizeSort(searchParams.get("sort"))
+  );
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [categoryOptions, setCategoryOptions] = useState([
     { id: "all", name: "All Products", icon: "🛍️", matchValues: [] },
@@ -134,6 +181,37 @@ const Products = () => {
     };
   }, []);
 
+  // Keep filters in sync with URL query params (search, category, store, sort)
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q !== null) setSearchTerm(q);
+
+    const categoryParam = searchParams.get("category");
+    if (categoryParam) {
+      const needle = categoryParam.trim().toLowerCase();
+      const match = categoryOptions.find((option) =>
+        option.id === "all"
+          ? needle === "all"
+          : (option.matchValues || []).includes(needle)
+      );
+      setSelectedCategory(match ? match.id : "all");
+    }
+
+    const storeParam = searchParams.get("store");
+    if (storeParam) {
+      const needle = storeParam.trim().toLowerCase();
+      const match = storeOptions.find((option) =>
+        option.id === "all"
+          ? needle === "all"
+          : (option.matchValues || []).includes(needle)
+      );
+      setSelectedStore(match ? match.id : "all");
+    }
+
+    const sortParam = searchParams.get("sort");
+    if (sortParam) setSortBy(normalizeSort(sortParam));
+  }, [searchParams, categoryOptions, storeOptions]);
+
   // Enhanced filtering and sorting
   useEffect(() => {
     let filtered = [...products];
@@ -187,9 +265,15 @@ const Products = () => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "price_low":
-          return (Number(a.price) || 0) - (Number(b.price) || 0);
+          return (
+            (Number(a.sale_price || a.price) || 0) -
+            (Number(b.sale_price || b.price) || 0)
+          );
         case "price_high":
-          return (Number(b.price) || 0) - (Number(a.price) || 0);
+          return (
+            (Number(b.sale_price || b.price) || 0) -
+            (Number(a.sale_price || a.price) || 0)
+          );
         case "name_desc":
           return String(b.name || "").localeCompare(String(a.name || ""));
         case "name":
@@ -198,6 +282,10 @@ const Products = () => {
           return (Number(b.rating) || 0) - (Number(a.rating) || 0);
         case "newest":
           return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        case "discount":
+          return discountPercent(b) - discountPercent(a);
+        case "trending":
+          return engagementScore(b) - engagementScore(a);
         default:
           return 0;
       }
@@ -257,27 +345,23 @@ const Products = () => {
         className="relative overflow-hidden border-b"
         style={{ borderColor: "#e5e7eb" }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+          <Breadcrumbs items={[{ label: "Shop" }]} className="mb-4" />
           <div className="text-center space-y-3">
-            <div className="mb-2">
-              <span className="text-2xl font-bold" style={{ color: emerald }}>
-                Nainzaka
-              </span>
-            </div>
             <h1
               className="text-4xl md:text-5xl font-light"
               style={{ color: charcoal }}
             >
-              Our{" "}
+              Shop{" "}
               <span className="font-semibold" style={{ color: emerald }}>
-                Collection
+                All Products
               </span>
             </h1>
             <p
               className="text-base md:text-lg"
               style={{ color: `${charcoal}b3` }}
             >
-              Discover premium products curated for your style
+              Discover products from every store, all in one place
             </p>
           </div>
         </div>
@@ -446,8 +530,12 @@ const Products = () => {
                 onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
               >
                 <option value="name">Name (A-Z)</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
+                <option value="name_desc">Name (Z-A)</option>
+                <option value="price_low">Price: Low to High</option>
+                <option value="price_high">Price: High to Low</option>
+                <option value="rating">Top Rated</option>
+                <option value="newest">Newest First</option>
+                <option value="discount">Biggest Discount</option>
               </select>
             </div>
           </div>
@@ -524,18 +612,8 @@ const Products = () => {
               {paginatedProducts.map((p) => (
                 <ProductCard
                   key={p.id}
-                  product={{
-                    id: p.id,
-                    slug: p.slug,
-                    name: p.name,
-                    price: p.price,
-                    compareAtPrice: p.sale_price ? p.regular_price : null,
-                    image: p.image_url,
-                    rating: p.rating,
-                    reviews: p.reviews,
-                    category: p.category,
-                    inStock: p.in_stock,
-                  }}
+                  product={{ ...p }}
+                  onQuickView={setQuickViewProduct}
                 />
               ))}
             </div>
@@ -643,6 +721,12 @@ const Products = () => {
           </>
         )}
       </div>
+
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={Boolean(quickViewProduct)}
+        onClose={() => setQuickViewProduct(null)}
+      />
     </div>
   );
 };

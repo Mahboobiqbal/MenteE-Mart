@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import supabase from "../utils/supabase";
 import ProductCard from "../components/ProductCard";
+import { normalizeProductRecord } from "../utils/dataLoader";
 import { Link, useNavigate } from "react-router-dom";
 
 const Wishlist = () => {
@@ -18,23 +19,21 @@ const Wishlist = () => {
       }
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(
+          `
+          *,
+          stores!left(
+            id,
+            name,
+            slug,
+            whatsapp_number
+          )
+        `
+        )
         .in("id", ids);
       if (error) throw error;
-      // map to shape ProductCard expects
-      const mapped = (data || []).map(p => ({
-        id: p.id,
-        slug: p.slug,
-        name: p.name ?? p.title,
-        image: p.image_url ?? p.image,
-        price: p.sale_price ?? p.price,
-        sale_price: p.sale_price ?? null,
-        regular_price: p.regular_price ?? null,
-        rating: p.rating ?? 0,
-        reviews: p.reviews ?? 0,
-        category: p.category,
-        inStock: typeof p.in_stock === "boolean" ? p.in_stock : true,
-      }));
+      // Normalize so ProductCard gets store + WhatsApp ordering data
+      const mapped = (data || []).map(normalizeProductRecord).filter(Boolean);
       setItems(mapped);
     } catch (e) {
       console.error("Wishlist load error:", e);

@@ -1,12 +1,13 @@
-// filepath: h:\Code\Nainzaka Aesthetics\src\components\Home.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import HeroSection from "./HeroSection";
+import HeroCarousel from "./HeroCarousel";
+import TrustBadges from "./TrustBadges";
+import FlashSale from "./FlashSale";
+import Testimonials from "./Testimonials";
 import Showcase from "./Showcase";
 import QuickCategories from "./QuickCategories";
 import PopularProducts from "./PopularProducts";
 import FeaturedProducts from "./FeaturedProducts";
 import TopSales from "./TopSales";
-import { motion as Motion } from "framer-motion";
 import TrendingProducts from "./TrendingProducts";
 import NewArrivals from "./NewArrivals";
 import ServiceMapMobile from "./ServiceMapMobile";
@@ -157,15 +158,23 @@ const Home = () => {
   return (
     <div className="w-full" style={{ backgroundColor: white }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
+        {/* Hero Carousel */}
         <section>
-          <HeroSection />
+          <HeroCarousel />
         </section>
 
-        {/* Quick Categories - Now loads from JSON */}
+        {/* Trust Badges */}
+        <section className="mt-8">
+          <TrustBadges />
+        </section>
+
+        {/* Quick Categories */}
         <section className="mt-8">
           <QuickCategories />
         </section>
+
+        {/* Flash Sale */}
+        <FlashSale products={saleProducts} loading={loading} />
 
         {/* Showcase of featured or trending products */}
         <section className="mt-8">
@@ -197,69 +206,11 @@ const Home = () => {
         {/* New Arrivals */}
         <NewArrivals products={newArrivals} loading={loading} />
 
-        {/* Collaboration with Nainzaka Aesthetic */}
-        <Motion.section
-          className="mt-16 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-2xl shadow-lg overflow-hidden"
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.1 }}
-        >
-          <div className="relative py-8 px-6">
-            <div className="flex items-center justify-center mb-6">
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 mr-4">
-                <span className="text-2xl">🤝</span>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  ✨ We are Collaborating with ✨
-                </h3>
-                <p className="text-white/90 text-lg font-medium">
-                  Nainzaka Aesthetic - Premium Beauty & Wellness
-                </p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 ml-4">
-                <span className="text-2xl">💄</span>
-              </div>
-            </div>
-
-            {/* Infinite Scroll Animation */}
-            <div className="relative overflow-hidden">
-              <div className="flex animate-scroll whitespace-nowrap">
-                {[...Array(6)].map((_, index) => (
-                  <div key={index} className="flex items-center space-x-8 mx-4">
-                    <div className="bg-white rounded-xl p-4 shadow-lg flex items-center justify-center">
-                      <span className="text-lg font-bold text-gray-800">
-                        Nainzaka
-                      </span>
-                    </div>
-                    <div className="text-white font-semibold text-lg">
-                      Premium Quality Products
-                    </div>
-                    <div className="text-white/80">✨</div>
-                    <div className="text-white font-semibold text-lg">
-                      Expert Formulations
-                    </div>
-                    <div className="text-white/80">💎</div>
-                    <div className="text-white font-semibold text-lg">
-                      Beauty Redefined
-                    </div>
-                    <div className="text-white/80">🌟</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-center mt-6">
-              <p className="text-white/90 text-sm">
-                Discover our exclusive collection of premium beauty products in
-                partnership with Nainzaka Aesthetic
-              </p>
-            </div>
-          </div>
-        </Motion.section>
+        {/* Testimonials */}
+        <Testimonials />
 
         {/* Mobile-friendly Service Map */}
-        <section>
+        <section className="mt-12">
           <ServiceMapMobile />
         </section>
       </div>

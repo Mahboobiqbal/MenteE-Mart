@@ -134,7 +134,7 @@ const Chatbot = () => {
 
   const handleClearHistory = () => {
     setMessages([
-      { sender: "bot", text: "Hi! Nainzaka here..." },
+      { sender: "bot", text: "Hi! Mena Bazar here..." },
     ]);
   };
 
@@ -171,7 +171,7 @@ const Chatbot = () => {
           <div className="bg-[#660033] p-4 text-white">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold">Nainzaka Assistant</h3>
+                <h3 className="text-lg font-semibold">Mena Bazar Assistant</h3>
                 <p className="text-xs opacity-80">How can I help you today?</p>
               </div>
               <button onClick={handleCloseChat} className="text-white opacity-70 hover:opacity-100 transition-opacity">

@@ -69,7 +69,7 @@ const ServiceMapMobile = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
-            href="https://wa.me/923001234567"
+            href="https://wa.me/923472886228"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition-all hover:shadow-md"

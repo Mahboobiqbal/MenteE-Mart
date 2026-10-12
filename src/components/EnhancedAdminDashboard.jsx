@@ -73,14 +73,8 @@ const EnhancedAdminDashboard = () => {
       if (!storesData || storesData.length === 0) {
         setStores([
           {
-            store_name: "MenteE",
-            whatsapp_number: "923001234567",
-            commission_rate: 5.0,
-            is_active: true,
-          },
-          {
-            store_name: "Nainzaka",
-            whatsapp_number: "923009876543",
+            store_name: "Mena Bazar",
+            whatsapp_number: "923472886228",
             commission_rate: 5.0,
             is_active: true,
           },
@@ -199,7 +193,7 @@ const EnhancedAdminDashboard = () => {
   };
 
   const handleTransferToStore = (order) => {
-    const orderStore = order.order_items?.[0]?.product_store || "MenteE";
+    const orderStore = order.order_items?.[0]?.product_store || "Mena Bazar";
     const whatsappUrl = getStoreWhatsAppUrl(orderStore, order);
     window.open(whatsappUrl, "_blank");
   };

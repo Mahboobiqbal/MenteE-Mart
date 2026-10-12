@@ -203,7 +203,7 @@ const StoreManagement = () => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="e.g., MenteE"
+                  placeholder="e.g., Mena Bazar"
                 />
               </div>
 
@@ -222,7 +222,7 @@ const StoreManagement = () => {
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="923001234567"
+                  placeholder="923472886228"
                 />
               </div>
 
@@ -288,7 +288,7 @@ const StoreManagement = () => {
                     setFormData({ ...formData, owner_phone: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="923001234567"
+                  placeholder="923472886228"
                 />
               </div>
             </div>

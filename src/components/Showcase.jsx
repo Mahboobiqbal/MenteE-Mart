@@ -381,7 +381,7 @@ const Showcase = ({
               Browse All Products
             </Link>
             <a
-              href="https://wa.me/923001234567"
+              href="https://wa.me/923472886228"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 rounded-lg font-bold shadow transition-all hover:shadow-md flex items-center"

@@ -273,7 +273,7 @@ const Categories = () => {
             <div className="inline-flex items-center gap-4 mb-6">
               <img
                 src={logo}
-                alt="MenteE Mart Logo"
+                alt="Mena Bazar Logo"
                 className="w-16 h-16 rounded-lg shadow-md"
               />
               <div>

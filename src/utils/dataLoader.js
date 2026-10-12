@@ -100,8 +100,11 @@ export const normalizeProductRecord = (product) => {
     rating: product.rating !== undefined ? Number(product.rating) : 0,
     reviews: reviewCount,
     review: reviewList,
-    store: product.stores?.name || null,
+    store: product.stores?.name || product.store || null,
     store_id: product.stores?.id || product.store_id || "default-store-id",
+    store_slug: product.stores?.slug || product.store_slug || null,
+    store_whatsapp:
+      product.stores?.whatsapp_number || product.store_whatsapp || null,
   };
 };
 
@@ -115,7 +118,9 @@ export const loadProducts = async () => {
         *,
         stores!left(
           id,
-          name
+          name,
+          slug,
+          whatsapp_number
         )
       `
       )
