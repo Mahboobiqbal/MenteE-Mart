@@ -20,6 +20,7 @@ const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Stores = lazy(() => import("./pages/Stores"));
 const StorePage = lazy(() => import("./pages/StorePage"));
 const InfoPage = lazy(() => import("./pages/InfoPage"));
+const Team = lazy(() => import("./pages/Team"));
 import { CartProvider } from "./context/CartContext";
 const CartPage = lazy(() => import("./pages/CartPage"));
 const CheckoutForm = lazy(() => import("./components/checkout/CheckoutForm"));
@@ -92,6 +93,14 @@ const App = () => {
               element={
                 <Layout>
                   <About />
+                </Layout>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <Layout>
+                  <Team />
                 </Layout>
               }
             />

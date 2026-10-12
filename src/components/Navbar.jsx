@@ -15,6 +15,7 @@ const Navbar = () => {
     { label: "Stores", to: "/stores" },
     { label: "Categories", to: "/categories" },
     { label: "About", to: "/about" },
+    { label: "Team", to: "/team" },
   ];
 
   useEffect(() => {

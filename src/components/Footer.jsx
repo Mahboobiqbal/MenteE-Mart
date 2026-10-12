@@ -264,11 +264,11 @@ const Footer = () => {
             Developed by{" "}
             <a
               className="text-white hover:underline"
-              href="https://syab.tech"
+              href="https://github.com/Mahboobiqbal"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Syed Syab Ahmad
+              Mahboob Iqbal
             </a>
           </p>
         </div>
