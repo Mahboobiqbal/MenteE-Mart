@@ -51,6 +51,7 @@ const ShippingAreasManagement = lazy(() =>
 const BusinessAnalytics = lazy(() =>
   import("./components/admin/BusinessAnalytics")
 );
+const AllProducts = lazy(() => import("./components/admin/AllProducts"));
 import "./App.css";
 
 // Component to always render Navbar and Footer (no admin routes)
@@ -227,20 +228,7 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <UnifiedAdminLayout title="Product Management">
-                    <div className="p-6">
-                      <h1 className="text-2xl font-bold text-gray-900 mb-4">
-                        All Products
-                      </h1>
-                      <p className="text-gray-600 mb-4">
-                        Select a store to manage its products.
-                      </p>
-                      <a
-                        href="/admin/stores"
-                        className="text-emerald-600 hover:text-emerald-700 font-medium"
-                      >
-                        Browse Stores →
-                      </a>
-                    </div>
+                    <AllProducts />
                   </UnifiedAdminLayout>
                 </ProtectedRoute>
               }
@@ -273,7 +261,7 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <UnifiedAdminLayout title="Settings">
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                       <h1 className="text-2xl font-bold text-gray-900 mb-4">
                         System Settings
                       </h1>
@@ -309,7 +297,7 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <UnifiedAdminLayout title="Add Product">
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                       <h1 className="text-2xl font-bold text-gray-900 mb-4">
                         Add New Product
                       </h1>

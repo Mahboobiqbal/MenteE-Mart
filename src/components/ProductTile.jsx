@@ -2,8 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const emerald = "#008060";
-const yellow = "#FFD700";
-const white = "#FFFFFF";
+const _yellow = "#FFD700";
+const _white = "#FFFFFF";
 const charcoal = "#333333";
 
 const ProductTile = ({ product }) => {

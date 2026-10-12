@@ -1,6 +1,6 @@
 import React from "react";
 
-const emerald = "#008060";
+const _emerald = "#008060";
 const yellow = "#FFD700";
 const charcoal = "#333333";
 

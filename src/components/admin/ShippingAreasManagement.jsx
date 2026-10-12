@@ -108,7 +108,7 @@ const ShippingAreasManagement = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipping Areas Management</h2>
 
       {/* Add New Area Form */}
@@ -185,6 +185,7 @@ const ShippingAreasManagement = () => {
 
       {/* Areas List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -319,6 +320,7 @@ const ShippingAreasManagement = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

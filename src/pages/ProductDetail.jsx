@@ -141,15 +141,15 @@ const ProductDetail = () => {
   }, [productId, navigate]);
 
   // Enhanced recommended products fetch with error handling
-  const [recommendedLoading, setRecommendedLoading] = useState(false);
-  const [recommendedError, setRecommendedError] = useState(false);
+  const [_recommendedLoading, set_recommendedLoading] = useState(false);
+  const [_recommendederror, set_recommendederror] = useState(false);
 
   useEffect(() => {
     const fetchRecommended = async () => {
       if (!product?.category || !product.id) return;
 
-      setRecommendedLoading(true);
-      setRecommendedError(false);
+      set_recommendedLoading(true);
+      set_recommendederror(false);
 
       try {
         const { data, error } = await supabase
@@ -165,11 +165,11 @@ const ProductDetail = () => {
         setRecommended(data || []);
       } catch (error) {
         console.error("Recommended fetch error:", error);
-        setRecommendedError(true);
+        set_recommendederror(true);
         // Show fallback recommendations or empty state
         setRecommended([]);
       } finally {
-        setRecommendedLoading(false);
+        set_recommendedLoading(false);
       }
     };
     fetchRecommended();
@@ -204,7 +204,7 @@ const ProductDetail = () => {
     );
   };
 
-  const handleCheckout = async () => {
+  const _handleCheckout = async () => {
     if (!product.in_stock) return;
 
     // Add product to cart and navigate to checkout
@@ -396,7 +396,7 @@ const ProductDetail = () => {
   // Enhanced Image Gallery Component
   const ProductGallery = () => {
     const [imageLoading, setImageLoading] = useState(true);
-    const [imageError, setImageError] = useState(false);
+    const [imageerror, setImageerror] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isZoomed, setIsZoomed] = useState(false);
 
@@ -407,12 +407,12 @@ const ProductDetail = () => {
 
     const handleImageLoad = () => {
       setImageLoading(false);
-      setImageError(false);
+      setImageerror(false);
     };
 
-    const handleImageError = () => {
+    const handleImageerror = () => {
       setImageLoading(false);
-      setImageError(true);
+      setImageerror(true);
     };
 
     const handleImageClick = () => {
@@ -462,7 +462,7 @@ const ProductDetail = () => {
             <img
               ref={imageRef}
               src={
-                imageError
+                imageerror
                   ? "https://via.placeholder.com/600x450/F9FAFB/6B7280?text=No+Image"
                   : images[selectedImage]
               }
@@ -470,7 +470,7 @@ const ProductDetail = () => {
               className="w-full h-full object-contain transition-opacity duration-300"
               style={{ opacity: imageLoading ? 0 : 1 }}
               onLoad={handleImageLoad}
-              onError={handleImageError}
+              onerror={handleImageerror}
               onClick={handleImageClick}
               loading="lazy"
             />
@@ -499,20 +499,25 @@ const ProductDetail = () => {
           )}
 
           {/* Sale Badge */}
-          {product.sale_price && (
-            <motion.div
-              className="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg z-10"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              Save{" "}
-              {Math.round(
-                (1 - product.sale_price / product.regular_price) * 100
-              )}
-              %
-            </motion.div>
-          )}
+          {product.sale_price &&
+            Number(product.sale_price) <
+              Number(product.regular_price ?? product.price) && (
+              <motion.div
+                className="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg z-10"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                Save{" "}
+                {Math.round(
+                  (1 -
+                    Number(product.sale_price) /
+                      Number(product.regular_price ?? product.price)) *
+                    100
+                )}
+                %
+              </motion.div>
+            )}
 
           {/* Image Counter */}
           {images.length > 1 && (
@@ -689,12 +694,15 @@ const ProductDetail = () => {
     product.image_url,
     ...(product.additional_images || []),
   ].filter(Boolean);
-  const finalPrice = product.sale_price ?? product.price;
-  const savings = product.sale_price
-    ? Math.round(
-        ((product.regular_price - product.sale_price) / product.regular_price) *
-          100
-      )
+  const basePrice = Number(product.regular_price ?? product.price ?? 0);
+  const salePrice =
+    product.sale_price != null && Number(product.sale_price) > 0
+      ? Number(product.sale_price)
+      : null;
+  const hasDiscount = salePrice != null && basePrice > salePrice;
+  const finalPrice = salePrice != null ? salePrice : basePrice;
+  const savings = hasDiscount
+    ? Math.round(((basePrice - salePrice) / basePrice) * 100)
     : 0;
 
   return (
@@ -864,15 +872,15 @@ const ProductDetail = () => {
             >
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                 <div className="flex-1">
-                  {product.sale_price ? (
+                  {hasDiscount ? (
                     <div className="space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
                         <span className="text-4xl sm:text-5xl font-bold text-purple-600">
-                          ₨{Number(product.sale_price).toLocaleString()}
+                          ₨{salePrice.toLocaleString()}
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="text-xl sm:text-2xl text-gray-500 line-through">
-                            ₨{Number(product.regular_price).toLocaleString()}
+                            ₨{basePrice.toLocaleString()}
                           </span>
                           <motion.span
                             className="bg-red-500 text-white text-sm font-bold px-2 py-1 rounded-full"
@@ -892,8 +900,7 @@ const ProductDetail = () => {
                       >
                         💰 You save ₨
                         {Number(
-                          (product.regular_price - product.sale_price) *
-                            quantity
+                          (basePrice - salePrice) * quantity
                         ).toLocaleString()}{" "}
                         ({savings}%)
                       </motion.div>
@@ -1381,7 +1388,7 @@ const ProductDetail = () => {
                       src={rec.image_url}
                       alt={rec.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      onError={(e) => {
+                      onerror={(e) => {
                         e.target.src =
                           "https://via.placeholder.com/300x300/F9FAFB/6B7280?text=No+Image";
                       }}
@@ -1675,3 +1682,5 @@ const ProductSkeleton = () => (
 );
 
 export default ProductDetail;
+
+

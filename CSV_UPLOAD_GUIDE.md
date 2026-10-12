@@ -247,7 +247,7 @@ name,description,category,price,sale_price,sale_type,sale_start,sale_end,in_stoc
 For issues or questions:
 
 - Contact admin support
-- Email: admin@menabazar.com
+- Email: mahboobiqbal774@gmail.com
 - Include your CSV file and error message
 
 ---

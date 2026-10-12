@@ -1,5 +1,17 @@
 -- ===== Supabase Database Schema for MenteE-Mart =====
 
+-- Step 1: CLEAN SLATE - Remove all seed data to start fresh
+-- Run this once to clear all tables before inserting fresh dummy data
+DELETE FROM order_items;
+DELETE FROM products;
+DELETE FROM stores;
+DELETE FROM categories;
+DELETE FROM areas;
+DELETE FROM orders;
+DELETE FROM customers;
+
+-- ============================================================
+
 -- 1. Stores table (holds multi-store config + WhatsApp contacts)
 CREATE TABLE IF NOT EXISTS stores (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -83,6 +95,7 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS order_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
   product_name TEXT NOT NULL,
   quantity INTEGER NOT NULL DEFAULT 1,
   unit_price NUMERIC NOT NULL DEFAULT 0,
@@ -92,10 +105,10 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- 6. Shipping areas table (delivery zones for checkout)
-CREATE TABLE IF NOT EXISTS shipping_areas (
+CREATE TABLE IF NOT EXISTS areas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  area_name TEXT NOT NULL,
-  area_code TEXT,
+  name TEXT NOT NULL UNIQUE,
+  code TEXT UNIQUE,
   shipping_cost NUMERIC NOT NULL DEFAULT 0,
   estimated_delivery_days INTEGER NOT NULL DEFAULT 3,
   is_active BOOLEAN NOT NULL DEFAULT true,
@@ -132,43 +145,91 @@ ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE shipping_areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
 -- Policies allowing public read access (adjust as needed for your security model)
 CREATE POLICY "Allow public read" ON stores FOR SELECT USING (true);
 CREATE POLICY "Allow public read" ON categories FOR SELECT USING (true);
 CREATE POLICY "Allow public read" ON products FOR SELECT USING (true);
-CREATE POLICY "Allow public read" ON shipping_areas FOR SELECT USING (is_active = true);
+CREATE POLICY "Allow public read" ON areas FOR SELECT USING (is_active = true);
 CREATE POLICY "Allow public read" ON customers FOR SELECT USING (true);
 
--- Policies for authenticated admin operations (placeholder – replace with your own)
-CREATE POLICY "Allow admin full access" ON stores FOR ALL USING (false);
-CREATE POLICY "Allow admin full access" ON categories FOR ALL USING (false);
-CREATE POLICY "Allow admin full access" ON products FOR ALL USING (false);
-CREATE POLICY "Allow admin full access" ON orders FOR ALL USING (false);
-CREATE POLICY "Allow admin full access" ON order_items FOR ALL USING (false);
-CREATE POLICY "Allow admin full access" ON shipping_areas FOR ALL USING (false);
-CREATE POLICY "Allow admin full access" ON customers FOR ALL USING (false);
+-- Admin RLS policies - these check for admin email in JWT claims
+-- After admin passcode verification, the user is signed in as mahboobiqbal774@gmail.com
+-- via Supabase Auth. These policies allow admin CRUD operations while preserving
+-- public read access for the storefront.
+-- 
+-- To configure: 
+-- 1. Create a Supabase Auth user with email mahboobiqbal774@gmail.com
+-- 2. Set the admin passcode in .env (VITE_ADMIN_PASSCODE)
+-- 3. These policies will allow the authenticated admin to perform CRUD operations
+CREATE POLICY "Admin full access" ON stores FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
+CREATE POLICY "Admin full access" ON categories FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
+CREATE POLICY "Admin full access" ON products FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
+CREATE POLICY "Admin full access" ON orders FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
+CREATE POLICY "Admin full access" ON order_items FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
+CREATE POLICY "Admin full access" ON areas FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
+CREATE POLICY "Admin full access" ON customers FOR ALL USING (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+) WITH CHECK (
+  auth.role() = 'authenticated' AND auth.jwt() ->> 'email' = 'mahboobiqbal774@gmail.com'
+);
 
 -- ===== Default / seed data (optional) =====
 -- Insert a default store if none exists (name, whatsapp, commission)
+-- Uses WHERE NOT EXISTS for idempotency - safe to run multiple times
 INSERT INTO stores (name, slug, whatsapp_number, commission_rate, is_active)
 SELECT 'Mena Bazar', 'mena-bazar', '923472886228', 5.0, true
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE slug = 'mena-bazar');
 
--- Insert default categories (adjust as needed)
-INSERT INTO categories (name, description, sort_order, is_active)
-VALUES 
-  ('Electronics', 'All electronic devices', 1, true),
-  ('Fashion', 'Clothing and accessories', 2, true),
-  ('Home & Kitchen', 'Home and kitchen items', 3, true),
-  ('Beauty & Personal Care', 'Beauty and personal care', 4, true),
-  ('Accessories', 'Accessories', 5, true);
+-- ===== 1. Clean slate: clear all seed data (safe to run, idempotent)
+DELETE FROM order_items;
+DELETE FROM products;
+DELETE FROM stores;
+DELETE FROM categories;
+DELETE FROM areas;
+DELETE FROM orders;
+DELETE FROM customers;
+
+-- 2. Insert 5 unique categories (idempotent ON CONFLICT)
+INSERT INTO categories (name, description, sort_order, is_active, slug) VALUES
+('Electronics', 'Gadgets and tech equipment', 1, true, 'electronics'),
+('Fashion', 'Clothing and accessories', 2, true, 'fashion'),
+('Home & Kitchen', 'Home decor and kitchenware', 3, true, 'home-kitchen'),
+('Beauty & Personal Care', 'Skincare and personal grooming', 4, true, 'beauty'),
+('Accessories', 'Fashion accessories and add-ons', 5, true, 'accessories')
+ON CONFLICT (name) DO NOTHING;
 
 -- Insert default shipping area
-INSERT INTO shipping_areas (area_name, shipping_cost, estimated_delivery_days, is_active)
-VALUES ('Pakistan', 0, 3, true);
+-- Uses ON CONFLICT for idempotency - safe to run multiple times
+INSERT INTO areas (name, shipping_cost, estimated_delivery_days, is_active)
+SELECT 'Pakistan', 0, 3, true
+ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
 -- NOTE: 

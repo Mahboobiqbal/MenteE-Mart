@@ -58,7 +58,7 @@ const UnifiedDashboard = () => {
     return orders.filter((order) => order.status === status).length;
   };
 
-  const getStoreWhatsAppUrl = (store) => {
+  const _getStoreWhatsAppUrl = (store) => {
     return `https://wa.me/${store.whatsapp_number}?text=Hello! I have a new order for your store ${store.name}. Please check your store dashboard.`;
   };
 
@@ -74,7 +74,15 @@ const UnifiedDashboard = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-600">
+          Monitor your business performance and store metrics
+        </p>
+      </div>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -394,3 +402,4 @@ const UnifiedDashboard = () => {
 };
 
 export default UnifiedDashboard;
+

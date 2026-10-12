@@ -408,9 +408,7 @@ export const getOrderByNumber = async (orderNumber) => {
       .select(
         `
         *,
-        customers(*),
-        order_items(*),
-        payment_records(*)
+        order_items(*)
       `
       )
       .eq("order_number", orderNumber)

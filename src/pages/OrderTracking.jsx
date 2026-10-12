@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { usenavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Package,
@@ -17,7 +17,7 @@ import {
 
 const OrderTracking = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const navigate = usenavigate();
   const [orderNumber, setOrderNumber] = useState(
     searchParams.get("order") || ""
   );
@@ -102,12 +102,12 @@ const OrderTracking = () => {
       "shipped",
       "delivered",
     ];
-    const currentIndex = statusOrder.indexOf(currentStatus);
+    const currentindex = statusOrder.indexOf(currentStatus);
 
     return steps.map((step, index) => ({
       ...step,
-      completed: index <= currentIndex,
-      active: index === currentIndex,
+      completed: index <= currentindex,
+      active: index === currentindex,
     }));
   };
 
@@ -457,3 +457,5 @@ const OrderTracking = () => {
 };
 
 export default OrderTracking;
+
+

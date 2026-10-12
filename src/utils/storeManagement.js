@@ -202,7 +202,7 @@ export const getAllProducts = async () => {
       .select(
         `
         *,
-        stores!inner(
+        stores(
           id,
           name
         )
@@ -236,7 +236,13 @@ export const createProduct = async (productData) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error("Error creating product:", error);
+    console.error("Error creating product:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      status: error.status,
+    });
     throw error;
   }
 };
@@ -450,8 +456,8 @@ const generateOrderNumber = async () => {
 
     if (error) throw error;
     return data;
-  } catch (error) {
-    // Fallback: generate order number locally
+  } catch {
+    // Fallback: generate order number locally (error ignored for fallback)
     const timestamp = Date.now().toString().slice(-6);
     return `ORD${timestamp.padStart(6, "0")}`;
   }

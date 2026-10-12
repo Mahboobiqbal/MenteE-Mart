@@ -1,7 +1,7 @@
 import React from "react";
 import ProductCard from "./ProductCard";
 
-const emerald = "#008060";
+const _emerald = "#008060";
 const charcoal = "#333333";
 
 const DealsGrid = ({ saleProducts = [], loading = false }) => {

@@ -72,6 +72,10 @@ const StoreProductManagement = () => {
     end: false,
     checked: false,
   });
+  const [columnSupport, setColumnSupport] = useState({
+    description: false,
+    regular_price: false,
+  });
 
   const loadStoreAndProducts = useCallback(async () => {
     try {
@@ -115,19 +119,21 @@ const StoreProductManagement = () => {
     let active = true;
     (async () => {
       try {
-        const [typeSupported, startSupported, endSupported] = await Promise.all(
-          [
+        const [typeSupported, startSupported, endSupported, descSupported, regSupported] =
+          await Promise.all([
             productSupportsColumn("sale_type"),
             productSupportsColumn("sale_start"),
             productSupportsColumn("sale_end"),
-          ]
-        );
+            productSupportsColumn("description"),
+            productSupportsColumn("regular_price"),
+          ]);
 
         if (!active) return;
 
         rememberProductColumnSupport("sale_type", typeSupported);
         rememberProductColumnSupport("sale_start", startSupported);
         rememberProductColumnSupport("sale_end", endSupported);
+        setColumnSupport({ description: descSupported, regular_price: regSupported });
 
         setSaleSupport({
           type: typeSupported,
@@ -235,16 +241,23 @@ const StoreProductManagement = () => {
 
       const productPayload = {
         name: formData.name.trim(),
-        description: formData.description.trim() || null,
         category: formData.category.trim(),
-        regular_price: parseFloat(formData.regular_price),
+        price: parseFloat(formData.regular_price),
         sale_price: formData.sale_price
           ? parseFloat(formData.sale_price)
           : null,
         in_stock: !!formData.in_stock,
         featured: !!formData.featured,
         store_id: storeId,
+        store: store?.name || "",
       };
+
+      if (columnSupport.regular_price) {
+        productPayload.regular_price = parseFloat(formData.regular_price);
+      }
+      if (columnSupport.description) {
+        productPayload.description = formData.description.trim() || null;
+      }
 
       if (saleSupport.type) {
         productPayload.sale_type = formData.sale_type || null;
@@ -312,7 +325,9 @@ const StoreProductManagement = () => {
       description: product.description || "",
       category: product.category || "",
       regular_price:
-        product.regular_price != null ? product.regular_price.toString() : "",
+        (product.regular_price ?? product.price) != null
+          ? (product.regular_price ?? product.price).toString()
+          : "",
       sale_price: product.sale_price ? product.sale_price.toString() : "",
       sale_type: product.sale_type || "",
       sale_start: product.sale_start ? product.sale_start.slice(0, 10) : "",
@@ -567,7 +582,7 @@ const StoreProductManagement = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -694,7 +709,7 @@ const StoreProductManagement = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Regular Price (₨) *
+                  Price (₨) *
                 </label>
                 <input
                   type="number"
@@ -802,20 +817,22 @@ const StoreProductManagement = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                rows={3}
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="Product description..."
-              />
-            </div>
+            {columnSupport.description && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Product description..."
+                />
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1008,12 +1025,13 @@ const StoreProductManagement = () => {
                       {formatCurrency(product.sale_price)}
                     </span>
                     <span className="text-sm text-gray-500 line-through">
-                      {formatCurrency(product.regular_price)}
+                      {formatCurrency(product.regular_price ?? product.price)}
                     </span>
                     <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">
                       {Math.round(
-                        ((product.regular_price - product.sale_price) /
-                          product.regular_price) *
+                        (((product.regular_price ?? product.price) -
+                          product.sale_price) /
+                          (product.regular_price ?? product.price)) *
                           100
                       )}
                       % OFF
@@ -1021,7 +1039,7 @@ const StoreProductManagement = () => {
                   </div>
                 ) : (
                   <span className="text-lg font-bold text-gray-900">
-                    {formatCurrency(product.regular_price)}
+                    {formatCurrency(product.regular_price ?? product.price)}
                   </span>
                 )}
               </div>

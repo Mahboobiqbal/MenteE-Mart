@@ -92,7 +92,7 @@ export const createOrder = async (orderData) => {
     }
 
     // Calculate commission based on subtotal only (excluding shipping)
-    commissionAmount = Number(orderData.totalAmount || 0) * (commissionRate / 100);
+    let commissionAmount = Number(orderData.totalAmount || 0) * (commissionRate / 100);
 
     // Calculate total amount including shipping
     const totalAmountWithShipping = Number(orderData.totalAmount || 0) + shippingCost;

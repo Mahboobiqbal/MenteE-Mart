@@ -43,7 +43,7 @@ const OrderManagement = () => {
   const loadOrdersAndStores = async () => {
     try {
       setLoading(true);
-      let ordersData, storesData;
+      let ordersData, _storesData;
 
       if (selectedStore === "all") {
         ordersData = await getAllOrders();
@@ -459,7 +459,7 @@ const OrderManagement = () => {
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Customer Info */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -576,3 +576,4 @@ const OrderManagement = () => {
 };
 
 export default OrderManagement;
+

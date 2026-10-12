@@ -19,7 +19,7 @@ const CartSummary = ({ areaId }) => {
   
   const fetchShippingArea = async (id) => {
     try {
-      const { data, error } = await supabase
+      const { data, _error } = await supabase
         .from("areas")
         .select("shipping_cost, estimated_delivery_days")
         .eq("id", id)
@@ -29,8 +29,8 @@ const CartSummary = ({ areaId }) => {
         setShippingCost(data.shipping_cost);
         setEstimatedDelivery(`${data.estimated_delivery_days} business days`);
       }
-    } catch (error) {
-      console.error("Error fetching shipping area:", error);
+    } catch (_error) {
+      console._error("_error fetching shipping area:", _error);
     }
   };
 
@@ -158,3 +158,4 @@ const CartSummary = ({ areaId }) => {
 };
 
 export default CartSummary;
+

@@ -218,20 +218,9 @@ const AddProduct = () => {
 
       if (token) {
         headers.Authorization = `Bearer ${token}`;
-      } else if (
-        typeof window !== "undefined" &&
-        sessionStorage.getItem("admin_ok") === "1"
-      ) {
-        const adminPass = import.meta.env.VITE_ADMIN_PASSCODE;
-        if (!adminPass) {
-          throw new Error(
-            "Admin passcode is not configured (VITE_ADMIN_PASSCODE). Please configure it or sign in."
-          );
-        }
-        headers["x-admin-passcode"] = adminPass;
       } else {
         throw new Error(
-          "You must be signed in to upload images. Please sign in and try again."
+          "You must be signed in to upload images. Please sign in with the admin passcode at /admin/enter and try again."
         );
       }
 

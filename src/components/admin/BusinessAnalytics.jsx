@@ -107,27 +107,18 @@ const BusinessAnalytics = () => {
       const formattedStartDate = startDate.toISOString();
       const formattedEndDate = new Date().toISOString();
 
-      // Build query filters
-      let filters = `created_at,gt.${formattedStartDate},and.created_at,lt.${formattedEndDate}`;
-      if (selectedStore !== "all") {
-        filters += `,and.store_id,eq.${selectedStore}`;
-      }
-
-      // Load overview data
-      const { data: orders } = await supabase
+      // Load overview data (filtered by date range and selected store)
+      let ordersQuery = supabase
         .from("orders")
         .select("*")
         .gte("created_at", formattedStartDate)
         .lt("created_at", formattedEndDate);
 
       if (selectedStore !== "all") {
-        await supabase
-          .from("orders")
-          .select("*")
-          .eq("store_id", selectedStore)
-          .gte("created_at", formattedStartDate)
-          .lt("created_at", formattedEndDate);
+        ordersQuery = ordersQuery.eq("store_id", selectedStore);
       }
+
+      const { data: orders } = await ordersQuery;
 
       // Calculate overview metrics
       const totalRevenue =
@@ -223,19 +214,11 @@ const BusinessAnalytics = () => {
         orderStatus[status].revenue += parseFloat(order.total_amount || 0);
       });
 
-      // Get recent orders
+      // Get recent orders (customer info is denormalized on the order row;
+      // there is no FK relationship between orders and customers)
       const { data: recentOrders } = await supabase
         .from("orders")
-        .select(
-          `
-          *,
-          customers (
-            first_name,
-            last_name,
-            email
-          )
-        `
-        )
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -339,9 +322,10 @@ const BusinessAnalytics = () => {
         "Date,Order ID,Customer,Store,Status,Total Amount,Shipping Cost,Commission Amount,Payment Method\n";
 
       analytics.recentOrders.forEach((order) => {
-        const customer = order.customers
-          ? `${order.customers.first_name} ${order.customers.last_name}`
-          : "Unknown";
+        const customer =
+          order.customer_first_name || order.customer_last_name
+            ? `${order.customer_first_name || ""} ${order.customer_last_name || ""}`.trim()
+            : order.customer_email || "Unknown";
 
         csvContent += `${new Date(order.created_at).toLocaleDateString()},${
           order.order_number
@@ -382,7 +366,7 @@ const BusinessAnalytics = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
@@ -1006,9 +990,9 @@ const BusinessAnalytics = () => {
                     {order.order_number}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.customers
-                      ? `${order.customers.first_name} ${order.customers.last_name}`
-                      : "Unknown"}
+                    {order.customer_first_name || order.customer_last_name
+                      ? `${order.customer_first_name || ""} ${order.customer_last_name || ""}`.trim()
+                      : order.customer_email || "Unknown"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {order.store_name}
@@ -1049,3 +1033,6 @@ const BusinessAnalytics = () => {
 };
 
 export default BusinessAnalytics;
+
+
+

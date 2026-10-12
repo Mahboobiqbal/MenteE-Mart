@@ -54,6 +54,7 @@ const AdminLogin = () => {
       const from = location.state?.from?.pathname || "/admin/dashboard";
       navigate(from, { replace: true });
     } catch (err) {
+      console.error("Admin login error:", err);
       setError("Unexpected error. Please try again.");
     } finally {
       setLoading(false);

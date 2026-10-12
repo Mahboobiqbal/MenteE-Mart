@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { use_navigate, useSearchParams } from "react-router-dom";
 
-const emerald = "#008060";
-const white = "#FFFFFF";
+const __emerald = "#008060";
+const __white = "#FFFFFF";
 
 const AdvancedFilters = ({
   onFiltersChange,
@@ -10,7 +10,7 @@ const AdvancedFilters = ({
   categories = [],
   priceRange = [0, 50000],
 }) => {
-  const navigate = useNavigate();
+  const _navigate = use_navigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -78,7 +78,7 @@ const AdvancedFilters = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-_white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Filter Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -89,7 +89,7 @@ const AdvancedFilters = ({
                 {totalProducts} products
               </span>
               {getActiveFiltersCount() > 0 && (
-                <span className="bg-[#008060] text-white text-xs px-2 py-1 rounded-full">
+                <span className="bg-[#008060] text-_white text-xs px-2 py-1 rounded-full">
                   {getActiveFiltersCount()} active
                 </span>
               )}
@@ -452,3 +452,6 @@ const AdvancedFilters = ({
 };
 
 export default AdvancedFilters;
+
+
+
